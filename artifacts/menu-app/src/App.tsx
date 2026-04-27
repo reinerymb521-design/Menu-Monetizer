@@ -1,42 +1,55 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { PayPalScriptProvider } from "@paypal/react-paypal-js";
+import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/not-found";
+import { AuthProvider } from "@/hooks/useAuth";
+import { SettingsProvider } from "@/hooks/useSettings";
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
+import BookReader from "./components/BookReader";
+import AudioPlayer from "./components/AudioPlayer";
+import MiniAudioPlayer from "./components/MiniAudioPlayer";
+import { AudioPlayerProvider } from "./contexts/AudioPlayerContext";
 
 const queryClient = new QueryClient();
 
-function Home() {
-  return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900">Replit Agent is building...</h1>
-        <p className="mt-2 text-sm text-gray-600">Your app will appear here once it's ready.</p>
-      </div>
-    </div>
-  );
-}
+const paypalClientId =
+  (import.meta.env.VITE_PAYPAL_CLIENT_ID as string | undefined) || "test";
 
-function Router() {
-  return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
-
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <PayPalScriptProvider
+      options={{
+        clientId: paypalClientId,
+        currency: "USD",
+        intent: "subscription",
+        vault: true,
+        components: "buttons",
+      }}
+    >
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
+        <AuthProvider>
+          <SettingsProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter basename={import.meta.env.BASE_URL}>
+              <AudioPlayerProvider>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/read/:id" element={<BookReader />} />
+                  <Route path="/listen/:id" element={<AudioPlayer />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+                <MiniAudioPlayer />
+              </AudioPlayerProvider>
+            </BrowserRouter>
+          </SettingsProvider>
+        </AuthProvider>
       </TooltipProvider>
-    </QueryClientProvider>
-  );
-}
+    </PayPalScriptProvider>
+  </QueryClientProvider>
+);
 
 export default App;

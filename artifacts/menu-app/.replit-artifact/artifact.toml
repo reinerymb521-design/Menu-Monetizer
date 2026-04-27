@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "Menú de Opciones + Premium PayPal"
+title = "AudiVerse — Menú + Premium PayPal"
 version = "1.0.0"
 id = "artifacts/menu-app"
 router = "path"

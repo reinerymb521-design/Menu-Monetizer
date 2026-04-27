@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Menú de Opciones + Premium PayPal"
+version = "1.0.0"
+id = "artifacts/menu-app"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23650
+
+[services.development]
+run = "pnpm --filter @workspace/menu-app run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/menu-app", "run", "build" ]
+publicDir = "artifacts/menu-app/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23650"
+BASE_PATH = "/"

@@ -1,21 +1,55 @@
-# Configuración de PayPal y Supabase para AudiVerse
+# Configuración de AudiVerse (Login con Google + PayPal)
 
-Esta guía describe los **dos pasos** necesarios para activar la suscripción
-Premium con PayPal en tu app:
+Esta guía cubre los **tres pasos** que faltan para dejar la app 100% lista:
 
-1. Ejecutar un pequeño SQL en tu Supabase (permitir registrar suscripciones).
-2. Configurar tu **PayPal Client ID** real (y opcionalmente Plan IDs).
+1. Configurar **Google** como proveedor de login en Supabase.
+2. Ejecutar un pequeño SQL en Supabase (políticas para suscripciones).
+3. Configurar tu **PayPal Client ID** real (y opcionalmente Plan IDs).
 
 ---
 
-## 1. SQL a ejecutar en Supabase
+## 1. Activar Google Login en Supabase
 
-Tu tabla `public.subscriptions` ya existe (la creamos en una migración previa),
-pero **no tiene política `INSERT`**, así que ahora mismo cuando un usuario paga,
-Supabase rechaza el registro de su suscripción.
+AudiVerse ahora **solo permite el ingreso con cuenta de Google** (no se
+almacenan contraseñas de los usuarios). Para que funcione necesitas:
 
-Abre tu proyecto en https://supabase.com/dashboard → **SQL Editor → New query**
-y pega este script:
+### a) Activar el proveedor Google
+
+1. Entra a https://supabase.com/dashboard → tu proyecto.
+2. **Authentication → Providers → Google**.
+3. Activa el toggle. Pega tu **Client ID** y **Client Secret** de Google Cloud
+   (los obtienes en https://console.cloud.google.com/apis/credentials, creando
+   credenciales de tipo "OAuth client ID → Web application").
+4. En Google Cloud, en la sección **Authorized redirect URIs**, pega:
+
+   ```
+   https://saoezmlymxcafqszzjef.supabase.co/auth/v1/callback
+   ```
+
+5. Guarda en Supabase.
+
+### b) Agregar tus URLs a la lista permitida
+
+En Supabase → **Authentication → URL Configuration**:
+
+- **Site URL:** la URL de tu app publicada (cuando deploys, será algo como
+  `https://audiverse-xxx.replit.app`). Por ahora puedes poner la del entorno de
+  desarrollo de Replit.
+- **Redirect URLs (Additional):** agrega ambas, una por línea:
+  - URL del entorno de desarrollo (la que ves en la barra del preview).
+  - URL de producción `https://audiverse-xxx.replit.app/`.
+
+> Si no agregas la URL aquí, después de iniciar sesión con Google la página
+> redirige pero Supabase rechaza el callback y vuelves a la pantalla de login.
+
+---
+
+## 2. SQL a ejecutar en Supabase
+
+Tu tabla `public.subscriptions` ya existe pero **no tiene política `INSERT`**,
+así que cuando un usuario paga Supabase rechaza el registro de su suscripción.
+
+Abre **SQL Editor → New query** y pega:
 
 ```sql
 -- Permitir que cada usuario registre su propia suscripción
@@ -61,7 +95,7 @@ Ejecuta (botón **Run**). Listo.
 
 ---
 
-## 2. Configurar PayPal
+## 3. Configurar PayPal
 
 ### a) Crear (o ver) tu Client ID
 

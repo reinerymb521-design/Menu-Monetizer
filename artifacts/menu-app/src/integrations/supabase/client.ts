@@ -2,20 +2,18 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env
-  .VITE_SUPABASE_PUBLISHABLE_KEY as string;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
-if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-  // Surface misconfiguration loudly during development.
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   // eslint-disable-next-line no-console
   console.error(
-    "[supabase] Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY env vars",
+    "[supabase] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY env vars",
   );
 }
 
 export const supabase = createClient<Database>(
   SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY,
+  SUPABASE_ANON_KEY,
   {
     auth: {
       storage: localStorage,

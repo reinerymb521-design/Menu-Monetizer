@@ -34,7 +34,7 @@ Full AudiVerse audiobook app (React + Vite + TS + Tailwind v4 + Supabase) with t
 2. **PayPal premium subscription** (`src/components/VIPSection.tsx` + `src/components/PayPalSubscribeButton.tsx`) — Smart Buttons supporting recurring subscriptions (via `VITE_PAYPAL_PLAN_MONTHLY` / `VITE_PAYPAL_PLAN_YEARLY` plan IDs) or one-time orders. On approval, sets `profiles.is_premium = true` and inserts row into `subscriptions` table; emits `audiverse:profile-refresh` window event consumed by `useAuth.tsx`.
 
 ### Required env vars
-- `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` — already set
+- `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` — already set
 - `VITE_PAYPAL_CLIENT_ID` — currently `"test"` placeholder; replace with live client ID
 - `VITE_PAYPAL_PLAN_MONTHLY`, `VITE_PAYPAL_PLAN_YEARLY` — optional; if unset, PayPal falls back to one-time order
 

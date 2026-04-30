@@ -4,9 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Play, Pause, SkipBack, SkipForward,
-  Rewind, FastForward, Volume2, VolumeX, BookOpen, Gauge, ChevronDown,
+  Rewind, FastForward, Volume2, VolumeX, BookOpen, Gauge, ChevronDown, ListOrdered,
 } from "lucide-react";
 import { useAudioPlayer } from "@/contexts/AudioPlayerContext";
+import VoiceCommandButton from "./VoiceCommandButton";
+import ChaptersModal from "./ChaptersModal";
 
 const SAMPLE_AUDIO = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
 const SPEEDS = [0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -23,6 +25,7 @@ export default function AudioPlayer() {
   const navigate = useNavigate();
   const player = useAudioPlayer();
   const [showSpeed, setShowSpeed] = useState(false);
+  const [showChapters, setShowChapters] = useState(false);
 
   const { data: book } = useQuery({
     queryKey: ["book", id],
@@ -161,7 +164,20 @@ export default function AudioPlayer() {
             />
           </div>
         </div>
+
+        <div className="flex items-center justify-center gap-2 pt-1">
+          <VoiceCommandButton onShowChapters={() => setShowChapters(true)} />
+          <button
+            onClick={() => setShowChapters(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 text-xs font-semibold hover:bg-white/20 transition"
+            aria-label="Ver capítulos"
+          >
+            <ListOrdered className="w-3.5 h-3.5" /> Capítulos
+          </button>
+        </div>
       </div>
+
+      <ChaptersModal open={showChapters} onClose={() => setShowChapters(false)} />
     </div>
   );
 }

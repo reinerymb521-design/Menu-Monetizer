@@ -31,7 +31,7 @@ interface Props {
 
 export default function SettingsPanel({ open, onClose, onGoToVIP }: Props) {
   const [view, setView] = useState<View>("main");
-  const { signOut, profile } = useAuth();
+  const { signOut, profile, isPremium } = useAuth();
 
   if (!open) return null;
 
@@ -74,7 +74,7 @@ export default function SettingsPanel({ open, onClose, onGoToVIP }: Props) {
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {view === "main" && (
             <MainList
-              isPremium={!!profile?.is_premium}
+              isPremium={isPremium}
               onSelect={setView}
               onSignOut={async () => {
                 await signOut();
@@ -91,7 +91,7 @@ export default function SettingsPanel({ open, onClose, onGoToVIP }: Props) {
           {view === "reproduccion" && <ReproduccionSection />}
           {view === "datos" && <DatosSection />}
           {view === "seguridad" && <SeguridadSection />}
-          {view === "premium" && <PremiumSection isPremium={!!profile?.is_premium} onGoToVIP={goToVIP} />}
+          {view === "premium" && <PremiumSection isPremium={isPremium} onGoToVIP={goToVIP} />}
           {view === "ayuda" && <AyudaSection />}
           {view === "acerca" && <AcercaSection />}
         </div>

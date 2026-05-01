@@ -148,6 +148,39 @@ export type Database = {
         }
         Relationships: []
       }
+      perfiles: {
+        Row: {
+          id: string
+          user_id: string
+          display_name: string | null
+          avatar_url: string | null
+          bio: string | null
+          es_premium: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          display_name?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          es_premium?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          display_name?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          es_premium?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

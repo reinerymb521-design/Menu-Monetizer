@@ -11,9 +11,8 @@ const MONTHLY_PLAN_ID = import.meta.env.VITE_PAYPAL_PLAN_MONTHLY as string | und
 const YEARLY_PLAN_ID = import.meta.env.VITE_PAYPAL_PLAN_YEARLY as string | undefined;
 
 export default function VIPSection() {
-  const { user, profile } = useAuth();
+  const { user, isPremium } = useAuth();
   const qc = useQueryClient();
-  const isPremium = profile?.is_premium;
   const [plan, setPlan] = useState<"monthly" | "yearly">("monthly");
 
   const { data: sub } = useQuery({

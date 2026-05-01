@@ -15,7 +15,7 @@ import SettingsPanel from "./SettingsPanel";
 type Section = "inicio" | "comunidad" | "vip" | "perfil" | "admin";
 
 export default function AppLayout() {
-  const { user, profile } = useAuth();
+  const { user, profile, isPremium } = useAuth();
   const [activeSection, setActiveSection] = useState<Section>("inicio");
   const [searchQuery, setSearchQuery] = useState("");
   const [notifOpen, setNotifOpen] = useState(false);
@@ -49,16 +49,16 @@ export default function AppLayout() {
             <img
               src={profile?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${profile?.display_name || "U"}`}
               alt="Avatar"
-              className={`w-9 h-9 rounded-full border-2 object-cover cursor-pointer ${profile?.is_premium ? "border-yellow-400" : "border-primary"}`}
+              className={`w-9 h-9 rounded-full border-2 object-cover cursor-pointer ${isPremium ? "border-yellow-400" : "border-primary"}`}
             />
-            {profile?.is_premium && (
+            {isPremium && (
               <Crown className="w-3.5 h-3.5 text-yellow-400 absolute -bottom-0.5 -right-0.5 bg-background rounded-full p-0.5" />
             )}
           </div>
           <div>
             <h3 className="text-sm font-semibold text-foreground leading-tight flex items-center gap-1">
               {profile?.display_name || "Usuario"}
-              {profile?.is_premium && <Crown className="w-3 h-3 text-yellow-400 inline" />}
+              {isPremium && <Crown className="w-3 h-3 text-yellow-400 inline" />}
             </h3>
             <p className="text-xs text-muted-foreground">
               Seguidores: <span className="text-primary font-medium">{profile?.follower_count ?? 0}</span>

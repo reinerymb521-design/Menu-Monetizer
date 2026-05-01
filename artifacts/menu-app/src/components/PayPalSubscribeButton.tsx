@@ -28,7 +28,7 @@ export default function PayPalSubscribeButton({
   price,
   onSuccess,
 }: Props) {
-  const { user, profile } = useAuth();
+  const { user, isPremium } = useAuth();
   const [{ isPending, isRejected }] = usePayPalScriptReducer();
 
   if (isRejected) {
@@ -47,7 +47,7 @@ export default function PayPalSubscribeButton({
     );
   }
 
-  if (profile?.is_premium) return null;
+  if (isPremium) return null;
 
   const recordSubscription = async (
     providerSubId: string,
@@ -58,12 +58,22 @@ export default function PayPalSubscribeButton({
     const end = new Date();
     end.setMonth(end.getMonth() + periodMonths);
 
-    // Update profile
+    // Update perfiles.es_premium = true (new table)
+    const { error: pfErr } = await supabase
+      .from("perfiles")
+      .update({ es_premium: true })
+      .eq("user_id", user.id);
+    if (pfErr) console.warn("perfiles update:", pfErr.message);
+
+    // Also update legacy profiles.is_premium = true for backwards compatibility
     const { error: pErr } = await supabase
       .from("profiles")
       .update({ is_premium: true })
       .eq("user_id", user.id);
-    if (pErr) console.error("profile update error", pErr);
+    if (pErr) console.warn("profiles update:", pErr.message);
+
+    // Trigger a profile refresh in the UI immediately
+    window.dispatchEvent(new Event("audiverse:profile-refresh"));
 
     // Record subscription (payment_provider = 'paypal')
     const { error: sErr } = await supabase.from("subscriptions").insert({

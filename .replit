@@ -28,6 +28,10 @@ localPort = 8081
 externalPort = 8081
 
 [[ports]]
+localPort = 8082
+externalPort = 3000
+
+[[ports]]
 localPort = 23650
 externalPort = 80
 
@@ -35,5 +39,5 @@ externalPort = 80
 
 [userenv.shared]
 VITE_SUPABASE_URL = "https://bnakspevjtzzesjicqjw.supabase.co"
-VITE_PAYPAL_CLIENT_ID = "test"
+VITE_PAYPAL_CLIENT_ID = "ASheYdAjc_d8wJJbs45ynF8JL8__AVHmX3YaeG6cDiJdgyABksT3cmbR9knwGYquq13JhNDwc0F3bjU_"
 VITE_SUPABASE_ANON_KEY = "sb_publishable_NRCFY-9gVhEm-BzWYY1-JA__km7FtAh"

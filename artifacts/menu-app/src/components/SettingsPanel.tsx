@@ -265,20 +265,23 @@ function MainList({
 /* ----------------------- CUENTA ----------------------- */
 function CuentaSection() {
   const { user, profile } = useAuth();
-  const [name, setName] = useState(profile?.display_name || "");
-  const [bio, setBio] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
   const [saving, setSaving] = useState(false);
+  const { supabase: _sb } = { supabase };
 
   const save = async () => {
     if (!user) return;
     setSaving(true);
     const { error } = await supabase
-      .from("profiles")
-      .update({ display_name: name.trim(), bio: bio.trim() })
+      .from("perfiles")
+      .update({ avatar_url: avatarUrl.trim() || null })
       .eq("user_id", user.id);
     setSaving(false);
     if (error) toast.error(error.message);
-    else toast.success("Datos guardados");
+    else {
+      toast.success("Perfil actualizado");
+      window.dispatchEvent(new Event("audiverse:profile-refresh"));
+    }
   };
 
   return (
@@ -287,20 +290,12 @@ function CuentaSection() {
         <span className="text-[10px] text-muted-foreground">Verificado</span>
       </Row>
       <div className="glass-panel p-4 space-y-3">
-        <label className="block text-xs font-semibold text-muted-foreground">Nombre público</label>
+        <label className="block text-xs font-semibold text-muted-foreground">URL de avatar</label>
         <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          value={avatarUrl}
+          onChange={(e) => setAvatarUrl(e.target.value)}
           className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-          placeholder="Tu nombre"
-        />
-        <label className="block text-xs font-semibold text-muted-foreground">Biografía</label>
-        <textarea
-          value={bio}
-          onChange={(e) => setBio(e.target.value)}
-          rows={3}
-          className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary resize-none"
-          placeholder="Cuéntanos sobre ti..."
+          placeholder="https://..."
         />
         <button
           onClick={save}

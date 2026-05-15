@@ -7,19 +7,17 @@ import {
   useCallback,
   ReactNode,
 } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
-interface TrackBook {
+export interface TrackInfo {
   id: string;
-  title: string;
-  author: string;
-  cover_url: string | null;
+  titulo: string;
+  autor: string;
+  portada_url: string | null;
 }
 
 interface AudioPlayerContextValue {
-  book: TrackBook | null;
+  track: TrackInfo | null;
   src: string | null;
   isPlaying: boolean;
   currentTime: number;
@@ -27,7 +25,7 @@ interface AudioPlayerContextValue {
   speed: number;
   volume: number;
   muted: boolean;
-  loadAndPlay: (book: TrackBook, src: string) => void;
+  loadAndPlay: (track: TrackInfo, src: string) => void;
   togglePlay: () => void;
   play: () => void;
   pause: () => void;
@@ -35,7 +33,6 @@ interface AudioPlayerContextValue {
   skip: (delta: number) => void;
   nextTrack: () => void;
   prevTrack: () => void;
-  resumeFromSaved: () => Promise<void>;
   setSpeed: (s: number) => void;
   setVolume: (v: number) => void;
   toggleMute: () => void;
@@ -51,18 +48,16 @@ export const useAudioPlayer = () => {
   return ctx;
 };
 
-// Approx. minutes-per-"chapter" used by next/prev when no real chapter list.
 const CHAPTER_STEP_SECONDS = 5 * 60;
 
 export function AudioPlayerProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   if (!audioRef.current && typeof Audio !== "undefined") {
     audioRef.current = new Audio();
     audioRef.current.preload = "metadata";
   }
 
-  const [book, setBook] = useState<TrackBook | null>(null);
+  const [track, setTrack] = useState<TrackInfo | null>(null);
   const [src, setSrc] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -71,7 +66,6 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   const [volume, setVolumeState] = useState(1);
   const [muted, setMuted] = useState(false);
 
-  // Wire audio events
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
@@ -79,19 +73,8 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     const onLoad = () => setDuration(a.duration);
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
-    const onEnd = async () => {
+    const onEnd = () => {
       setIsPlaying(false);
-      if (user && book) {
-        await supabase.from("reading_progress").upsert(
-          {
-            user_id: user.id,
-            book_id: book.id,
-            progress_percent: 100,
-            status: "completed",
-          },
-          { onConflict: "user_id,book_id" },
-        );
-      }
       toast.success("¡Audiolibro completado!");
     };
     a.addEventListener("timeupdate", onTime);
@@ -106,55 +89,36 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       a.removeEventListener("pause", onPause);
       a.removeEventListener("ended", onEnd);
     };
-  }, [user, book]);
+  }, []);
 
-  // Apply rate / volume
   useEffect(() => {
     if (audioRef.current) audioRef.current.playbackRate = speed;
   }, [speed]);
+
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = muted ? 0 : volume;
   }, [volume, muted]);
 
-  // Periodic progress save
-  useEffect(() => {
-    if (!isPlaying || !duration || !user || !book) return;
-    const i = setInterval(async () => {
-      const pct = Math.round((currentTime / duration) * 100);
-      if (pct > 0 && pct < 100) {
-        await supabase.from("reading_progress").upsert(
-          {
-            user_id: user.id,
-            book_id: book.id,
-            progress_percent: pct,
-            status: "reading",
-          },
-          { onConflict: "user_id,book_id" },
-        );
-      }
-    }, 15000);
-    return () => clearInterval(i);
-  }, [isPlaying, currentTime, duration, user, book]);
-
   const loadAndPlay = useCallback(
-    (b: TrackBook, source: string) => {
+    (t: TrackInfo, source: string) => {
       const a = audioRef.current;
       if (!a) return;
-      if (book?.id !== b.id || src !== source) {
+      if (track?.id !== t.id || src !== source) {
         a.src = source;
         setSrc(source);
-        setBook(b);
+        setTrack(t);
         setCurrentTime(0);
         setDuration(0);
       }
       a.play().catch(() => {});
     },
-    [book, src],
+    [track, src],
   );
 
   const play = useCallback(() => {
     audioRef.current?.play().catch(() => {});
   }, []);
+
   const pause = useCallback(() => {
     audioRef.current?.pause();
   }, []);
@@ -181,33 +145,8 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     [seek],
   );
 
-  const nextTrack = useCallback(() => {
-    skip(CHAPTER_STEP_SECONDS);
-  }, [skip]);
-  const prevTrack = useCallback(() => {
-    skip(-CHAPTER_STEP_SECONDS);
-  }, [skip]);
-
-  const resumeFromSaved = useCallback(async () => {
-    const a = audioRef.current;
-    if (!a || !book) {
-      toast.error("Primero abre un audiolibro");
-      return;
-    }
-    if (user) {
-      const { data } = await supabase
-        .from("reading_progress")
-        .select("progress_percent")
-        .eq("user_id", user.id)
-        .eq("book_id", book.id)
-        .maybeSingle();
-      const pct = data?.progress_percent ?? 0;
-      const target = a.duration && pct ? (pct / 100) * a.duration : 0;
-      a.currentTime = target;
-      setCurrentTime(target);
-    }
-    a.play().catch(() => {});
-  }, [book, user]);
+  const nextTrack = useCallback(() => skip(CHAPTER_STEP_SECONDS), [skip]);
+  const prevTrack = useCallback(() => skip(-CHAPTER_STEP_SECONDS), [skip]);
 
   const setSpeed = useCallback((s: number) => setSpeedState(s), []);
   const setVolume = useCallback((v: number) => {
@@ -223,7 +162,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       a.removeAttribute("src");
       a.load();
     }
-    setBook(null);
+    setTrack(null);
     setSrc(null);
     setIsPlaying(false);
     setCurrentTime(0);
@@ -234,13 +173,13 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // ── navigator.mediaSession: lock screen + Bluetooth headphone buttons ──────
+  // navigator.mediaSession integration
   useEffect(() => {
-    if (!("mediaSession" in navigator) || !book) return;
-    const cover = book.cover_url || undefined;
+    if (!("mediaSession" in navigator) || !track) return;
+    const cover = track.portada_url || undefined;
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: book.title,
-      artist: book.author,
+      title: track.titulo,
+      artist: track.autor,
       album: "AudiVerse",
       artwork: cover
         ? [
@@ -256,41 +195,20 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       ["pause", () => pause()],
       ["previoustrack", () => prevTrack()],
       ["nexttrack", () => nextTrack()],
-      [
-        "seekbackward",
-        (details) => skip(-(details?.seekOffset ?? 10)),
-      ],
-      [
-        "seekforward",
-        (details) => skip(details?.seekOffset ?? 10),
-      ],
-      [
-        "seekto",
-        (details) => {
-          if (typeof details?.seekTime === "number") seek(details.seekTime);
-        },
-      ],
+      ["seekbackward", (d) => skip(-(d?.seekOffset ?? 10))],
+      ["seekforward", (d) => skip(d?.seekOffset ?? 10)],
+      ["seekto", (d) => { if (typeof d?.seekTime === "number") seek(d.seekTime); }],
     ];
     for (const [action, handler] of handlers) {
-      try {
-        navigator.mediaSession.setActionHandler(action, handler);
-      } catch {
-        /* unsupported action — ignore */
-      }
+      try { navigator.mediaSession.setActionHandler(action, handler); } catch { /* unsupported */ }
     }
-
     return () => {
       for (const [action] of handlers) {
-        try {
-          navigator.mediaSession.setActionHandler(action, null);
-        } catch {
-          /* ignore */
-        }
+        try { navigator.mediaSession.setActionHandler(action, null); } catch { /* ignore */ }
       }
     };
-  }, [book, play, pause, nextTrack, prevTrack, skip, seek]);
+  }, [track, play, pause, nextTrack, prevTrack, skip, seek]);
 
-  // Keep playbackState + position state in sync
   useEffect(() => {
     if (!("mediaSession" in navigator)) return;
     navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
@@ -304,15 +222,13 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         position: Math.min(currentTime, duration),
         playbackRate: speed,
       });
-    } catch {
-      /* not supported in some browsers */
-    }
+    } catch { /* not supported */ }
   }, [currentTime, duration, speed]);
 
   return (
     <AudioPlayerContext.Provider
       value={{
-        book,
+        track,
         src,
         isPlaying,
         currentTime,
@@ -328,7 +244,6 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         skip,
         nextTrack,
         prevTrack,
-        resumeFromSaved,
         setSpeed,
         setVolume,
         toggleMute,

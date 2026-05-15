@@ -27,29 +27,42 @@ export default function AudioPlayer() {
   const [showSpeed, setShowSpeed] = useState(false);
   const [showChapters, setShowChapters] = useState(false);
 
-  const { data: book } = useQuery({
-    queryKey: ["book", id],
+  const { data: libro } = useQuery({
+    queryKey: ["libro", id],
     queryFn: async () => {
-      const { data } = await supabase.from("books").select("*").eq("id", id!).single();
-      return data;
+      const { data: l } = await supabase
+        .from("libros")
+        .select("id, titulo, autor, portada_url, genero, es_premium")
+        .eq("id", id!)
+        .single();
+      if (!l) return null;
+      const { data: audio } = await supabase
+        .from("audiolibros")
+        .select("audio_url")
+        .eq("libro_id", id!)
+        .maybeSingle();
+      return { ...l, audio_url: audio?.audio_url ?? null };
     },
     enabled: !!id,
   });
 
-  // Load track when book is fetched (only if not already the current track)
   useEffect(() => {
-    if (!book) return;
-    if (player.book?.id === book.id) return;
-    const audioSrc = book.file_url || SAMPLE_AUDIO;
+    if (!libro) return;
+    if (player.track?.id === libro.id) return;
+    const audioSrc = libro.audio_url || SAMPLE_AUDIO;
     player.loadAndPlay(
-      { id: book.id, title: book.title, author: book.author, cover_url: book.cover_url },
-      audioSrc
+      { id: libro.id, titulo: libro.titulo, autor: libro.autor, portada_url: libro.portada_url },
+      audioSrc,
     );
-  }, [book?.id]);
+  }, [libro?.id]);
 
   const { isPlaying, currentTime, duration, speed, volume, muted } = player;
   const progressPct = duration ? (currentTime / duration) * 100 : 0;
-  const displayBook = book || player.book;
+  const displayTrack = libro || (player.track ? {
+    titulo: player.track.titulo,
+    autor: player.track.autor,
+    portada_url: player.track.portada_url,
+  } : null);
 
   return (
     <div className="fixed inset-0 z-[200] bg-gradient-to-b from-background via-background to-primary/10 text-foreground flex flex-col">
@@ -67,8 +80,8 @@ export default function AudioPlayer() {
       {/* Cover */}
       <div className="flex-1 flex flex-col items-center justify-center px-8 gap-6">
         <div className="w-64 h-64 max-w-[80vw] max-h-[40vh] rounded-2xl overflow-hidden shadow-2xl shadow-primary/30 bg-white/5">
-          {displayBook?.cover_url ? (
-            <img src={displayBook.cover_url} alt={displayBook.title} className="w-full h-full object-cover" />
+          {displayTrack?.portada_url ? (
+            <img src={displayTrack.portada_url} alt={displayTrack.titulo} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <BookOpen className="w-20 h-20 text-muted-foreground" />
@@ -76,8 +89,8 @@ export default function AudioPlayer() {
           )}
         </div>
         <div className="text-center">
-          <h1 className="font-bold text-lg leading-tight line-clamp-2">{displayBook?.title || "Cargando..."}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{displayBook?.author}</p>
+          <h1 className="font-bold text-lg leading-tight line-clamp-2">{displayTrack?.titulo || "Cargando..."}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{displayTrack?.autor}</p>
         </div>
       </div>
 

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Crown, Sparkles } from "lucide-react";
-import BookCard from "./BookCard";
+import BookCard, { type Libro } from "./BookCard";
 
 const GENRES = [
   { label: "Todos", emoji: "" },
@@ -21,29 +21,28 @@ interface Props {
 export default function HomePage({ searchQuery }: Props) {
   const [activeGenre, setActiveGenre] = useState("Todos");
 
-  const { data: books = [], isLoading } = useQuery({
-    queryKey: ["books", activeGenre, searchQuery],
+  const { data: libros = [], isLoading } = useQuery({
+    queryKey: ["libros", activeGenre, searchQuery],
     queryFn: async () => {
       let query = supabase
-        .from("books")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (activeGenre !== "Todos") query = query.eq("genre", activeGenre);
+        .from("libros")
+        .select("id, titulo, autor, descripcion, portada_url, genero, es_premium");
+      if (activeGenre !== "Todos") query = query.eq("genero", activeGenre);
       if (searchQuery)
         query = query.or(
-          `title.ilike.%${searchQuery}%,author.ilike.%${searchQuery}%`,
+          `titulo.ilike.%${searchQuery}%,autor.ilike.%${searchQuery}%`,
         );
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return (data ?? []) as Libro[];
     },
   });
 
-  const { freeBooks, premiumBooks } = useMemo(() => {
-    const free = books.filter((b) => !b.is_premium);
-    const premium = books.filter((b) => b.is_premium);
-    return { freeBooks: free, premiumBooks: premium };
-  }, [books]);
+  const { librosGratis, librosPremium } = useMemo(() => {
+    const gratis = libros.filter((b) => !b.es_premium);
+    const premium = libros.filter((b) => b.es_premium);
+    return { librosGratis: gratis, librosPremium: premium };
+  }, [libros]);
 
   return (
     <section className="space-y-6">
@@ -71,7 +70,7 @@ export default function HomePage({ searchQuery }: Props) {
         <div className="flex justify-center py-12">
           <div className="loader-spinner" />
         </div>
-      ) : books.length === 0 ? (
+      ) : libros.length === 0 ? (
         <div className="glass-panel p-8 text-center text-muted-foreground">
           <p className="text-sm">
             No hay contenido aún. ¡Pronto se llenará el universo! 🌌
@@ -87,20 +86,18 @@ export default function HomePage({ searchQuery }: Props) {
                 Contenido Gratuito
               </h3>
               <span className="text-xs text-muted-foreground">
-                {freeBooks.length}{" "}
-                {freeBooks.length === 1 ? "título" : "títulos"}
+                {librosGratis.length}{" "}
+                {librosGratis.length === 1 ? "título" : "títulos"}
               </span>
             </div>
-            {freeBooks.length === 0 ? (
+            {librosGratis.length === 0 ? (
               <div className="glass-panel p-6 text-center text-muted-foreground">
-                <p className="text-sm">
-                  No hay títulos gratuitos en esta categoría.
-                </p>
+                <p className="text-sm">No hay títulos gratuitos en esta categoría.</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4">
-                {freeBooks.map((book) => (
-                  <BookCard key={book.id} book={book} />
+                {librosGratis.map((libro) => (
+                  <BookCard key={libro.id} book={libro} />
                 ))}
               </div>
             )}
@@ -116,20 +113,18 @@ export default function HomePage({ searchQuery }: Props) {
                 </span>
               </h3>
               <span className="text-xs text-muted-foreground">
-                {premiumBooks.length}{" "}
-                {premiumBooks.length === 1 ? "título" : "títulos"}
+                {librosPremium.length}{" "}
+                {librosPremium.length === 1 ? "título" : "títulos"}
               </span>
             </div>
-            {premiumBooks.length === 0 ? (
+            {librosPremium.length === 0 ? (
               <div className="glass-panel p-6 text-center text-muted-foreground">
-                <p className="text-sm">
-                  Aún no hay títulos premium en esta categoría.
-                </p>
+                <p className="text-sm">Aún no hay títulos premium en esta categoría.</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4">
-                {premiumBooks.map((book) => (
-                  <BookCard key={book.id} book={book} />
+                {librosPremium.map((libro) => (
+                  <BookCard key={libro.id} book={libro} />
                 ))}
               </div>
             )}

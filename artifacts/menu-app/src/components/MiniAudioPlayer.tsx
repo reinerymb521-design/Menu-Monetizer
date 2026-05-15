@@ -3,12 +3,11 @@ import { Play, Pause, X, BookOpen } from "lucide-react";
 import { useAudioPlayer } from "@/contexts/AudioPlayerContext";
 
 export default function MiniAudioPlayer() {
-  const { book, isPlaying, currentTime, duration, togglePlay, close } = useAudioPlayer();
+  const { track, isPlaying, currentTime, duration, togglePlay, close } = useAudioPlayer();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Hide on full player route
-  if (!book || location.pathname.startsWith("/listen/")) return null;
+  if (!track || location.pathname.startsWith("/listen/")) return null;
 
   const pct = duration ? (currentTime / duration) * 100 : 0;
 
@@ -21,12 +20,12 @@ export default function MiniAudioPlayer() {
 
       <div className="flex items-center gap-2 p-2">
         <button
-          onClick={() => navigate(`/listen/${book.id}`)}
+          onClick={() => navigate(`/listen/${track.id}`)}
           className="flex items-center gap-2 flex-1 min-w-0 text-left"
         >
           <div className="w-10 h-10 rounded-md bg-white/5 overflow-hidden shrink-0">
-            {book.cover_url ? (
-              <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover" />
+            {track.portada_url ? (
+              <img src={track.portada_url} alt={track.titulo} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <BookOpen className="w-4 h-4 text-muted-foreground" />
@@ -34,8 +33,8 @@ export default function MiniAudioPlayer() {
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-foreground truncate">{book.title}</p>
-            <p className="text-[10px] text-muted-foreground truncate">{book.author}</p>
+            <p className="text-xs font-semibold text-foreground truncate">{track.titulo}</p>
+            <p className="text-[10px] text-muted-foreground truncate">{track.autor}</p>
           </div>
         </button>
 

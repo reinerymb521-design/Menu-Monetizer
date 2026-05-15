@@ -62,8 +62,8 @@ export default function VoiceCommandButton({ onShowChapters }: Props) {
           "continuar",
         ])
       ) {
-        toast.success("▶️ Reanudando desde donde te quedaste");
-        player.resumeFromSaved();
+        toast.success("▶️ Reanudando");
+        player.play();
       } else if (
         matches(transcript, ["siguiente", "próximo", "proximo", "adelante"])
       ) {

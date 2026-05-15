@@ -16,26 +16,21 @@ export default function VIPSection() {
   const [plan, setPlan] = useState<"monthly" | "yearly">("monthly");
 
   const { data: sub } = useQuery({
-    queryKey: ["mySubscription", user?.id],
+    queryKey: ["miSuscripcion"],
     queryFn: async () => {
-      if (!user) return null;
       const { data } = await supabase
-        .from("subscriptions")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("status", "active")
-        .order("created_at", { ascending: false })
+        .from("suscripciones")
+        .select("estado, fecha_inicio, fecha_fin")
+        .eq("estado", "activa")
         .limit(1)
         .maybeSingle();
-      return data;
+      return data ?? null;
     },
-    enabled: !!user,
+    enabled: isPremium,
   });
 
   const refreshAll = () => {
-    qc.invalidateQueries({ queryKey: ["mySubscription"] });
-    qc.invalidateQueries({ queryKey: ["fullProfile"] });
-    // soft reload of profile in useAuth
+    qc.invalidateQueries({ queryKey: ["miSuscripcion"] });
     window.dispatchEvent(new Event("audiverse:profile-refresh"));
   };
 
@@ -54,31 +49,29 @@ export default function VIPSection() {
           {sub && (
             <div className="glass-panel p-3 text-left space-y-1.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Plan</span>
-                <span className="font-semibold capitalize">
-                  {sub.plan === "monthly" ? "Mensual" : "Anual"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Estado</span>
-                <span className="font-semibold text-green-400 capitalize">
-                  {sub.status}
-                </span>
+                <span className="font-semibold text-green-400 capitalize">{sub.estado}</span>
               </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Método</span>
-                <span className="font-semibold capitalize">{sub.payment_provider}</span>
-              </div>
-              {sub.current_period_end && (
+              {sub.fecha_inicio && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground flex items-center gap-1">
-                    <Calendar className="w-3 h-3" /> Renueva
+                    <Calendar className="w-3 h-3" /> Inicio
                   </span>
                   <span className="font-semibold">
-                    {new Date(sub.current_period_end).toLocaleDateString("es", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
+                    {new Date(sub.fecha_inicio).toLocaleDateString("es", {
+                      day: "numeric", month: "short", year: "numeric",
+                    })}
+                  </span>
+                </div>
+              )}
+              {sub.fecha_fin && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Calendar className="w-3 h-3" /> Expira
+                  </span>
+                  <span className="font-semibold">
+                    {new Date(sub.fecha_fin).toLocaleDateString("es", {
+                      day: "numeric", month: "short", year: "numeric",
                     })}
                   </span>
                 </div>
@@ -142,9 +135,7 @@ export default function VIPSection() {
           <button
             onClick={() => setPlan("monthly")}
             className={`py-3 px-3 rounded-lg border-2 text-left transition ${
-              plan === "monthly"
-                ? "border-yellow-400 bg-yellow-400/10"
-                : "border-white/10 bg-white/5 hover:border-yellow-400/30"
+              plan === "monthly" ? "border-yellow-400 bg-yellow-400/10" : "border-white/10 bg-white/5 hover:border-yellow-400/30"
             }`}
           >
             <p className="text-[10px] text-muted-foreground uppercase">Mensual</p>
@@ -154,34 +145,21 @@ export default function VIPSection() {
           <button
             onClick={() => setPlan("yearly")}
             className={`py-3 px-3 rounded-lg border-2 text-left transition relative ${
-              plan === "yearly"
-                ? "border-yellow-400 bg-yellow-400/10"
-                : "border-white/10 bg-white/5 hover:border-yellow-400/30"
+              plan === "yearly" ? "border-yellow-400 bg-yellow-400/10" : "border-white/10 bg-white/5 hover:border-yellow-400/30"
             }`}
           >
-            <span className="absolute -top-2 right-2 text-[9px] bg-yellow-400 text-black font-bold px-1.5 py-0.5 rounded-full">
-              -33%
-            </span>
+            <span className="absolute -top-2 right-2 text-[9px] bg-yellow-400 text-black font-bold px-1.5 py-0.5 rounded-full">-33%</span>
             <p className="text-[10px] text-muted-foreground uppercase">Anual</p>
             <p className="text-base font-bold">${YEARLY_PRICE}</p>
             <p className="text-[10px] text-muted-foreground">por año</p>
           </button>
         </div>
 
-        {/* PayPal Buttons */}
         <div className="pt-2 space-y-2">
           {user ? (
-            <PayPalSubscribeButton
-              key={plan}
-              planId={planId}
-              plan={plan}
-              price={price}
-              onSuccess={refreshAll}
-            />
+            <PayPalSubscribeButton key={plan} planId={planId} plan={plan} price={price} onSuccess={refreshAll} />
           ) : (
-            <p className="text-center text-xs text-muted-foreground py-3">
-              Inicia sesión para suscribirte
-            </p>
+            <p className="text-center text-xs text-muted-foreground py-3">Inicia sesión para suscribirte</p>
           )}
           <p className="text-[10px] text-muted-foreground text-center">
             Pago seguro procesado por PayPal · Puedes cancelar en cualquier momento

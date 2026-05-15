@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Home, Users, Crown, Bell, User, Settings as SettingsIcon, Shield } from "lucide-react";
 import HomePage from "./HomePage";
 import CommunitySection from "./CommunitySection";
@@ -15,28 +13,29 @@ import SettingsPanel from "./SettingsPanel";
 type Section = "inicio" | "comunidad" | "vip" | "perfil" | "admin";
 
 export default function AppLayout() {
-  const { user, profile, isPremium } = useAuth();
+  const { user, profile, isPremium, isAdmin } = useAuth();
   const [activeSection, setActiveSection] = useState<Section>("inicio");
   const [searchQuery, setSearchQuery] = useState("");
   const [notifOpen, setNotifOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const unreadCount = useUnreadCount();
 
-  const { data: isAdmin } = useQuery({
-    queryKey: ["isAdminNav", user?.id],
-    queryFn: async () => {
-      if (!user) return false;
-      const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
-      return !!data;
-    },
-    enabled: !!user,
-  });
+  const displayName =
+    profile?.display_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split("@")[0] ||
+    "Usuario";
+
+  const avatarUrl =
+    profile?.avatar_url ||
+    user?.user_metadata?.avatar_url ||
+    `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName)}`;
 
   const navItems: { id: Section; icon: typeof Home; label: string; show?: boolean }[] = [
     { id: "inicio", icon: Home, label: "Inicio" },
     { id: "comunidad", icon: Users, label: "Comunidad" },
     { id: "vip", icon: Crown, label: "VIP" },
-    { id: "admin", icon: Shield, label: "Admin", show: !!isAdmin },
+    { id: "admin", icon: Shield, label: "Admin", show: isAdmin },
     { id: "perfil", icon: User, label: "Perfil" },
   ];
 
@@ -47,7 +46,7 @@ export default function AppLayout() {
         <div className="flex items-center gap-3">
           <div className="relative" onClick={() => setActiveSection("perfil")}>
             <img
-              src={profile?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${profile?.display_name || "U"}`}
+              src={avatarUrl}
               alt="Avatar"
               className={`w-9 h-9 rounded-full border-2 object-cover cursor-pointer ${isPremium ? "border-yellow-400" : "border-primary"}`}
             />
@@ -57,11 +56,11 @@ export default function AppLayout() {
           </div>
           <div>
             <h3 className="text-sm font-semibold text-foreground leading-tight flex items-center gap-1">
-              {profile?.display_name || "Usuario"}
+              {displayName}
               {isPremium && <Crown className="w-3 h-3 text-yellow-400 inline" />}
             </h3>
             <p className="text-xs text-muted-foreground">
-              Seguidores: <span className="text-primary font-medium">{profile?.follower_count ?? 0}</span>
+              {isPremium ? "VIP Premium" : "Plan gratuito"}
             </p>
           </div>
         </div>
@@ -119,6 +118,7 @@ export default function AppLayout() {
           </button>
         ))}
       </nav>
+
       <NotificationsPanel open={notifOpen} onClose={() => setNotifOpen(false)} />
       <SettingsPanel
         open={settingsOpen}

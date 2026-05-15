@@ -7,352 +7,154 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
-      books: {
+      libros: {
         Row: {
-          author: string
-          cover_url: string | null
-          created_at: string
-          description: string | null
-          file_url: string | null
-          genre: string
           id: string
-          is_premium: boolean
-          rating: number | null
-          title: string
-          type: string
-          updated_at: string
-          view_count: number
+          titulo: string
+          autor: string
+          descripcion: string | null
+          portada_url: string | null
+          genero: string
+          es_premium: boolean
         }
         Insert: {
-          author: string
-          cover_url?: string | null
-          created_at?: string
-          description?: string | null
-          file_url?: string | null
-          genre: string
           id?: string
-          is_premium?: boolean
-          rating?: number | null
-          title: string
-          type?: string
-          updated_at?: string
-          view_count?: number
+          titulo: string
+          autor: string
+          descripcion?: string | null
+          portada_url?: string | null
+          genero: string
+          es_premium?: boolean
         }
         Update: {
-          author?: string
-          cover_url?: string | null
-          created_at?: string
-          description?: string | null
-          file_url?: string | null
-          genre?: string
           id?: string
-          is_premium?: boolean
-          rating?: number | null
-          title?: string
-          type?: string
-          updated_at?: string
-          view_count?: number
+          titulo?: string
+          autor?: string
+          descripcion?: string | null
+          portada_url?: string | null
+          genero?: string
+          es_premium?: boolean
         }
         Relationships: []
       }
-      favorites: {
+      audiolibros: {
         Row: {
-          book_id: string
-          created_at: string
           id: string
-          user_id: string
+          titulo: string
+          audio_url: string | null
+          libro_id: string
         }
         Insert: {
-          book_id: string
-          created_at?: string
           id?: string
-          user_id: string
+          titulo: string
+          audio_url?: string | null
+          libro_id: string
         }
         Update: {
-          book_id?: string
-          created_at?: string
           id?: string
-          user_id?: string
+          titulo?: string
+          audio_url?: string | null
+          libro_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "favorites_book_id_fkey"
-            columns: ["book_id"]
+            foreignKeyName: "audiolibros_libro_id_fkey"
+            columns: ["libro_id"]
             isOneToOne: false
-            referencedRelation: "books"
+            referencedRelation: "libros"
             referencedColumns: ["id"]
           },
         ]
-      }
-      followers: {
-        Row: {
-          created_at: string
-          follower_id: string
-          following_id: string
-          id: string
-        }
-        Insert: {
-          created_at?: string
-          follower_id: string
-          following_id: string
-          id?: string
-        }
-        Update: {
-          created_at?: string
-          follower_id?: string
-          following_id?: string
-          id?: string
-        }
-        Relationships: []
-      }
-      notifications: {
-        Row: {
-          body: string | null
-          created_at: string
-          id: string
-          is_read: boolean
-          related_book_id: string | null
-          related_user_id: string | null
-          title: string
-          type: string
-          user_id: string
-        }
-        Insert: {
-          body?: string | null
-          created_at?: string
-          id?: string
-          is_read?: boolean
-          related_book_id?: string | null
-          related_user_id?: string | null
-          title: string
-          type: string
-          user_id: string
-        }
-        Update: {
-          body?: string | null
-          created_at?: string
-          id?: string
-          is_read?: boolean
-          related_book_id?: string | null
-          related_user_id?: string | null
-          title?: string
-          type?: string
-          user_id?: string
-        }
-        Relationships: []
       }
       perfiles: {
         Row: {
           id: string
           user_id: string
-          display_name: string | null
+          email: string | null
           avatar_url: string | null
-          bio: string | null
           es_premium: boolean
-          created_at: string
-          updated_at: string
+          es_admin: boolean
         }
         Insert: {
           id?: string
           user_id: string
-          display_name?: string | null
+          email?: string | null
           avatar_url?: string | null
-          bio?: string | null
           es_premium?: boolean
-          created_at?: string
-          updated_at?: string
+          es_admin?: boolean
         }
         Update: {
           id?: string
           user_id?: string
-          display_name?: string | null
+          email?: string | null
           avatar_url?: string | null
-          bio?: string | null
           es_premium?: boolean
-          created_at?: string
-          updated_at?: string
+          es_admin?: boolean
         }
         Relationships: []
       }
-      profiles: {
+      suscripciones: {
         Row: {
-          avatar_url: string | null
-          bio: string | null
-          created_at: string
-          display_name: string | null
-          follower_count: number
-          following_count: number
           id: string
-          is_banned: boolean
-          is_premium: boolean
-          updated_at: string
-          user_id: string
+          estado: string
+          fecha_inicio: string | null
+          fecha_fin: string | null
         }
         Insert: {
-          avatar_url?: string | null
-          bio?: string | null
-          created_at?: string
-          display_name?: string | null
-          follower_count?: number
-          following_count?: number
           id?: string
-          is_banned?: boolean
-          is_premium?: boolean
-          updated_at?: string
-          user_id: string
+          estado?: string
+          fecha_inicio?: string | null
+          fecha_fin?: string | null
         }
         Update: {
-          avatar_url?: string | null
-          bio?: string | null
-          created_at?: string
-          display_name?: string | null
-          follower_count?: number
-          following_count?: number
           id?: string
-          is_banned?: boolean
-          is_premium?: boolean
-          updated_at?: string
-          user_id?: string
+          estado?: string
+          fecha_inicio?: string | null
+          fecha_fin?: string | null
         }
         Relationships: []
       }
-      reading_progress: {
+      progreso_lectura: {
         Row: {
-          book_id: string
-          created_at: string
           id: string
-          progress_percent: number
-          status: string
-          updated_at: string
-          user_id: string
+          audiolibro_id: string
+          completado: boolean
         }
         Insert: {
-          book_id: string
-          created_at?: string
           id?: string
-          progress_percent?: number
-          status?: string
-          updated_at?: string
-          user_id: string
+          audiolibro_id: string
+          completado?: boolean
         }
         Update: {
-          book_id?: string
-          created_at?: string
           id?: string
-          progress_percent?: number
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reading_progress_book_id_fkey"
-            columns: ["book_id"]
-            isOneToOne: false
-            referencedRelation: "books"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      reviews: {
-        Row: {
-          book_id: string
-          content: string | null
-          created_at: string
-          id: string
-          rating: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          book_id: string
-          content?: string | null
-          created_at?: string
-          id?: string
-          rating: number
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          book_id?: string
-          content?: string | null
-          created_at?: string
-          id?: string
-          rating?: number
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reviews_book_id_fkey"
-            columns: ["book_id"]
-            isOneToOne: false
-            referencedRelation: "books"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      subscriptions: {
-        Row: {
-          created_at: string
-          current_period_end: string | null
-          current_period_start: string | null
-          id: string
-          payment_provider: string
-          plan: string
-          provider_subscription_id: string | null
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          current_period_end?: string | null
-          current_period_start?: string | null
-          id?: string
-          payment_provider?: string
-          plan?: string
-          provider_subscription_id?: string | null
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          current_period_end?: string | null
-          current_period_start?: string | null
-          id?: string
-          payment_provider?: string
-          plan?: string
-          provider_subscription_id?: string | null
-          status?: string
-          updated_at?: string
-          user_id?: string
+          audiolibro_id?: string
+          completado?: boolean
         }
         Relationships: []
       }
-      user_roles: {
+      notificaciones: {
         Row: {
           id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
+          titulo: string
+          mensaje: string | null
+          leida: boolean
         }
         Insert: {
           id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
+          titulo: string
+          mensaje?: string | null
+          leida?: boolean
         }
         Update: {
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
+          titulo?: string
+          mensaje?: string | null
+          leida?: boolean
         }
         Relationships: []
       }
@@ -361,16 +163,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -494,11 +290,3 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
-
-export const Constants = {
-  public: {
-    Enums: {
-      app_role: ["admin", "moderator", "user"],
-    },
-  },
-} as const

@@ -41,3 +41,5 @@ externalPort = 80
 VITE_PAYPAL_CLIENT_ID = "ASheYdAjc_d8wJJbs45ynF8JL8__AVHmX3YaeG6cDiJdgyABksT3cmbR9knwGYquq13JhNDwc0F3bjU_"
 VITE_SUPABASE_ANON_KEY = "sb_publishable_NRCFY-9gVhEm-BzWYY1-JA__km7FtAh"
 VITE_SUPABASE_URL = "https://bnakspevjtzzesjicqjw.supabase.co"
+SUPABASE_URL = "https://bnakspevjtzzesjicqjw.supabase.co"
+SUPABASE_ANON_KEY = "sb_publishable_NRCFY-9gVhEm-BzWYY1-JA__km7FtAh"

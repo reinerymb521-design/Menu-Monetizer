@@ -6,7 +6,7 @@ import BookCard, { type Libro } from "./BookCard";
 
 const GENRES = [
   { label: "Todos", emoji: "" },
-  { label: "Terror", emoji: "👻" },
+  { label: "Horror", emoji: "👻" },
   { label: "Romance", emoji: "💖" },
   { label: "Ciencia Ficción", emoji: "🚀" },
   { label: "Aventura", emoji: "🏔️" },

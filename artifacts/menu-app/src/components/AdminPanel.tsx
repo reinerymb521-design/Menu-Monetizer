@@ -229,7 +229,7 @@ function LibroForm({ libro, onClose, onSaved }: { libro: any; onClose: () => voi
   const [form, setForm] = useState({
     titulo: libro?.titulo || "",
     autor: libro?.autor || "",
-    genero: libro?.genero || "Terror",
+    genero: libro?.genero || "Horror",
     descripcion: libro?.descripcion || "",
     portada_url: libro?.portada_url || "",
     es_premium: libro?.es_premium || false,
@@ -276,7 +276,7 @@ function LibroForm({ libro, onClose, onSaved }: { libro: any; onClose: () => voi
     }
   };
 
-  const GENEROS = ["Terror", "Romance", "Ciencia Ficción", "Aventura", "Fantasía", "Misterio", "No ficción", "Biografía"];
+  const GENEROS = ["Horror", "Romance", "Ciencia Ficción", "Aventura", "Fantasía", "Misterio", "No ficción", "Biografía"];
 
   return (
     <div className="glass-panel p-4 space-y-3">

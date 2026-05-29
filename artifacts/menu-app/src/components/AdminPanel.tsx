@@ -276,7 +276,7 @@ function LibroForm({ libro, onClose, onSaved }: { libro: any; onClose: () => voi
     }
   };
 
-  const GENEROS = ["Horror", "Romance", "Ciencia Ficción", "Aventura", "Fantasía", "Misterio", "No ficción", "Biografía"];
+  const GENEROS = ["Horror", "Drama", "Ciencia Ficción", "Aventura", "Fantasía", "Misterio", "No ficción", "Biografía"];
 
   return (
     <div className="glass-panel p-4 space-y-3">

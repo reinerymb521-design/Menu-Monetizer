@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
   BarChart3, BookOpen, Users, Crown, Plus, Trash2, Edit, Shield,
-  Search, X, Upload, Loader2,
+  Search, X, Upload, Loader2, FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmButton from "./ConfirmButton";
@@ -232,11 +232,14 @@ function LibroForm({ libro, onClose, onSaved }: { libro: any; onClose: () => voi
     genero: libro?.genero || "Horror",
     descripcion: libro?.descripcion || "",
     portada_url: libro?.portada_url || "",
+    pdf_url: libro?.pdf_url || "",
     es_premium: libro?.es_premium || false,
   });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
   const coverRef = useRef<HTMLInputElement>(null);
+  const pdfRef = useRef<HTMLInputElement>(null);
 
   const uploadCover = async (file: File) => {
     setUploading(true);
@@ -252,6 +255,23 @@ function LibroForm({ libro, onClose, onSaved }: { libro: any; onClose: () => voi
       toast.error(e.message || "Error al subir portada");
     } finally {
       setUploading(false);
+    }
+  };
+
+  const uploadPdf = async (file: File) => {
+    if (file.type !== "application/pdf") { toast.error("Solo se permiten archivos PDF"); return; }
+    setUploadingPdf(true);
+    try {
+      const path = `${crypto.randomUUID()}.pdf`;
+      const { error } = await supabase.storage.from("books-pdf").upload(path, file, { upsert: false, contentType: "application/pdf" });
+      if (error) throw error;
+      const { data } = supabase.storage.from("books-pdf").getPublicUrl(path);
+      setForm((f) => ({ ...f, pdf_url: data.publicUrl }));
+      toast.success("PDF subido correctamente");
+    } catch (e: any) {
+      toast.error(e.message || "Error al subir PDF");
+    } finally {
+      setUploadingPdf(false);
     }
   };
 
@@ -290,14 +310,36 @@ function LibroForm({ libro, onClose, onSaved }: { libro: any; onClose: () => voi
         {GENEROS.map((g) => <option key={g} value={g}>{g}</option>)}
       </select>
       <textarea value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} placeholder="Descripción" rows={2} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none resize-none" />
+
+      {/* Portada */}
       <div className="flex items-center gap-2">
         <input value={form.portada_url} onChange={(e) => setForm({ ...form, portada_url: e.target.value })} placeholder="URL de portada" className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none" />
         <button type="button" onClick={() => coverRef.current?.click()} disabled={uploading} className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-xs flex items-center gap-1.5 transition disabled:opacity-50 shrink-0">
-          {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />} Subir
+          {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />} Portada
         </button>
         <input ref={coverRef} type="file" accept="image/*" hidden onChange={(e) => e.target.files?.[0] && uploadCover(e.target.files[0])} />
       </div>
       {form.portada_url && <img src={form.portada_url} alt="" className="w-16 h-20 rounded object-cover border border-white/10" />}
+
+      {/* PDF */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 min-w-0">
+          <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+          <span className="text-xs text-muted-foreground truncate">
+            {form.pdf_url ? form.pdf_url.split("/").pop() : "Sin PDF"}
+          </span>
+        </div>
+        <button type="button" onClick={() => pdfRef.current?.click()} disabled={uploadingPdf} className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-xs flex items-center gap-1.5 transition disabled:opacity-50 shrink-0">
+          {uploadingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />} PDF
+        </button>
+        <input ref={pdfRef} type="file" accept="application/pdf" hidden onChange={(e) => e.target.files?.[0] && uploadPdf(e.target.files[0])} />
+      </div>
+      {form.pdf_url && (
+        <a href={form.pdf_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-primary hover:underline">
+          <FileText className="w-3.5 h-3.5" /> Ver PDF subido
+        </a>
+      )}
+
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={form.es_premium} onChange={(e) => setForm({ ...form, es_premium: e.target.checked })} className="rounded" />
         <Crown className="w-4 h-4 text-yellow-400" /> Contenido VIP

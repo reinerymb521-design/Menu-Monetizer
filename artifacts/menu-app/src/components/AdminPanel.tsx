@@ -12,7 +12,7 @@ import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, BarChart, Bar, CartesianGrid,
 } from "recharts";
 
-type Tab = "dashboard" | "libros" | "usuarios";
+type Tab = "dashboard" | "libros" | "pdfs" | "usuarios";
 
 export default function AdminPanel() {
   const { user, isAdmin, loading } = useAuth();
@@ -33,7 +33,8 @@ export default function AdminPanel() {
       <div className="flex gap-2 overflow-x-auto pb-1">
         {([
           ["dashboard", BarChart3, "Dashboard"],
-          ["libros", BookOpen, "Libros"],
+          ["libros", BookOpen, "Audiolibros"],
+          ["pdfs", FileText, "PDFs"],
           ["usuarios", Users, "Usuarios"],
         ] as const).map(([id, Icon, label]) => (
           <button key={id} onClick={() => setTab(id)} className={`chip ${tab === id ? "active" : ""} flex items-center gap-1.5 shrink-0`}>
@@ -43,6 +44,7 @@ export default function AdminPanel() {
       </div>
       {tab === "dashboard" && <DashboardTab />}
       {tab === "libros" && <LibrosTab />}
+      {tab === "pdfs" && <PdfsTab />}
       {tab === "usuarios" && <UsuariosTab />}
     </section>
   );
@@ -347,6 +349,140 @@ function LibroForm({ libro, onClose, onSaved }: { libro: any; onClose: () => voi
       <button onClick={handleSave} disabled={saving} className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
         {saving ? "Guardando..." : libro ? "Actualizar" : "Crear libro"}
       </button>
+    </div>
+  );
+}
+
+/* ---------- PDFs ---------- */
+function PdfsTab() {
+  const qc = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
+  const [search, setSearch] = useState("");
+  const pdfRef = useRef<HTMLInputElement>(null);
+  const [form, setForm] = useState({ titulo: "", genero: "" });
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const GENEROS = ["Horror", "Drama", "Ciencia Ficción", "Aventura", "Fantasía", "Misterio", "No ficción", "Biografía"];
+
+  const { data: pdfs = [] } = useQuery({
+    queryKey: ["adminPdfs", search],
+    queryFn: async () => {
+      let q = supabase.from("libros_pdf").select("id, titulo, url_pdf, genero, created_at").order("created_at", { ascending: false }).limit(50);
+      if (search) q = q.ilike("titulo", `%${search}%`);
+      const { data } = await q;
+      return data || [];
+    },
+  });
+
+  const deletePdf = useMutation({
+    mutationFn: async (id: number) => {
+      const { error } = await supabase.from("libros_pdf").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["adminPdfs"] }); toast.success("PDF eliminado"); },
+    onError: () => toast.error("Error al eliminar"),
+  });
+
+  const uploadAndSave = async (file: File) => {
+    if (!form.titulo.trim()) { toast.error("Escribe el título primero"); return; }
+    if (file.type !== "application/pdf") { toast.error("Solo se permiten archivos PDF"); return; }
+    setUploadingPdf(true);
+    try {
+      const path = `${crypto.randomUUID()}.pdf`;
+      const { error: upErr } = await supabase.storage.from("books-pdf").upload(path, file, { upsert: false, contentType: "application/pdf" });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("books-pdf").getPublicUrl(path);
+      setSaving(true);
+      const { error: insErr } = await supabase.from("libros_pdf").insert({
+        titulo: form.titulo.trim(),
+        url_pdf: urlData.publicUrl,
+        genero: form.genero || null,
+      });
+      if (insErr) throw insErr;
+      toast.success("PDF subido y guardado");
+      setForm({ titulo: "", genero: "" });
+      setShowForm(false);
+      qc.invalidateQueries({ queryKey: ["adminPdfs"] });
+    } catch (e: any) {
+      toast.error(e.message || "Error al subir PDF");
+    } finally {
+      setUploadingPdf(false);
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <div className="glass-panel flex-1 flex items-center gap-2 px-3 py-2">
+          <Search className="w-4 h-4 text-muted-foreground" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar PDFs..." className="flex-1 bg-transparent text-sm focus:outline-none text-foreground placeholder:text-muted-foreground" />
+        </div>
+        <button onClick={() => setShowForm(!showForm)} className="p-2.5 rounded-lg bg-primary text-primary-foreground" aria-label="Nuevo PDF">
+          <Plus className="w-4 h-4" />
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="glass-panel p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold">Subir nuevo PDF</h3>
+            <button onClick={() => setShowForm(false)}><X className="w-4 h-4 text-muted-foreground" /></button>
+          </div>
+          <input
+            value={form.titulo}
+            onChange={(e) => setForm({ ...form, titulo: e.target.value })}
+            placeholder="Título del libro"
+            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+          />
+          <select value={form.genero} onChange={(e) => setForm({ ...form, genero: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-foreground focus:outline-none">
+            <option value="">Sin género</option>
+            {GENEROS.map((g) => <option key={g} value={g}>{g}</option>)}
+          </select>
+          <button
+            type="button"
+            onClick={() => pdfRef.current?.click()}
+            disabled={uploadingPdf || saving || !form.titulo.trim()}
+            className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {uploadingPdf || saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+            {uploadingPdf ? "Subiendo..." : saving ? "Guardando..." : "Seleccionar PDF y subir"}
+          </button>
+          <input ref={pdfRef} type="file" accept="application/pdf" hidden onChange={(e) => e.target.files?.[0] && uploadAndSave(e.target.files[0])} />
+        </div>
+      )}
+
+      {pdfs.length === 0 && !showForm && (
+        <div className="glass-panel p-6 text-center text-muted-foreground">
+          <FileText className="w-10 h-10 mx-auto mb-2 opacity-30" />
+          <p className="text-sm">No hay PDFs subidos aún</p>
+        </div>
+      )}
+
+      {pdfs.map((p: any) => (
+        <div key={p.id} className="glass-panel p-3 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
+            <FileText className="w-5 h-5 text-red-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold line-clamp-1">{p.titulo}</p>
+            {p.genero && <p className="text-[10px] text-muted-foreground">{p.genero}</p>}
+          </div>
+          <a href={p.url_pdf} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded hover:bg-white/10 text-primary">
+            <FileText className="w-3.5 h-3.5" />
+          </a>
+          <ConfirmButton
+            title="¿Eliminar este PDF?"
+            description="Esta acción no se puede deshacer."
+            confirmLabel="Eliminar"
+            destructive
+            onConfirm={() => deletePdf.mutate(p.id)}
+            className="p-1.5 rounded hover:bg-white/10"
+            ariaLabel="Eliminar"
+          ><Trash2 className="w-3.5 h-3.5 text-destructive" /></ConfirmButton>
+        </div>
+      ))}
     </div>
   );
 }

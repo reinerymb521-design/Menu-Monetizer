@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Crown, Sparkles } from "lucide-react";
+import { Crown, Sparkles, FileText } from "lucide-react";
 import BookCard, { type Libro } from "./BookCard";
 
 const GENRES = [
@@ -35,6 +35,19 @@ export default function HomePage({ searchQuery }: Props) {
       const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as Libro[];
+    },
+  });
+
+  const { data: librosPdf = [] } = useQuery({
+    queryKey: ["librosPdf", searchQuery],
+    queryFn: async () => {
+      let query = supabase
+        .from("libros_pdf")
+        .select("id, titulo, url_pdf, genero")
+        .order("created_at", { ascending: false });
+      if (searchQuery) query = query.ilike("titulo", `%${searchQuery}%`);
+      const { data } = await query;
+      return data ?? [];
     },
   });
 
@@ -128,6 +141,41 @@ export default function HomePage({ searchQuery }: Props) {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Libros PDF */}
+      {librosPdf.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-baseline justify-between">
+            <h3 className="text-base font-bold flex items-center gap-2">
+              <FileText className="w-4 h-4 text-red-400" />
+              Libros PDF
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              {librosPdf.length} {librosPdf.length === 1 ? "título" : "títulos"}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {librosPdf.map((pdf: any) => (
+              <a
+                key={pdf.id}
+                href={pdf.url_pdf}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="glass-panel p-3 flex items-center gap-3 hover:bg-white/10 transition"
+              >
+                <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
+                  <FileText className="w-5 h-5 text-red-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold line-clamp-1">{pdf.titulo}</p>
+                  {pdf.genero && <p className="text-xs text-muted-foreground">{pdf.genero}</p>}
+                </div>
+                <span className="text-xs text-primary font-medium shrink-0">Leer →</span>
+              </a>
+            ))}
           </div>
         </div>
       )}

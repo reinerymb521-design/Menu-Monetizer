@@ -26,7 +26,7 @@ export default function HomePage({ searchQuery }: Props) {
     queryFn: async () => {
       let query = supabase
         .from("libros")
-        .select("id, titulo, autor, descripcion, portada_url, genero, es_premium");
+        .select("id, titulo, autor, descripcion, portada_url, genero, es_premium, pdf_url");
       if (activeGenre !== "Todos") query = query.eq("genero", activeGenre);
       if (searchQuery)
         query = query.or(

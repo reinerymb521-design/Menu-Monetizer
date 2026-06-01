@@ -298,7 +298,7 @@ function LibroForm({ libro, onClose, onSaved }: { libro: any; onClose: () => voi
     }
   };
 
-  const GENEROS = ["Horror", "Drama", "Ciencia Ficción", "Aventura", "Fantasía", "Misterio", "No ficción", "Biografía"];
+  const GENEROS = ["Horror", "Drama", "Ciencia Ficción", "Aventura", "Romance", "Misterio", "No ficción", "Biografía"];
 
   return (
     <div className="glass-panel p-4 space-y-3">
@@ -363,7 +363,7 @@ function PdfsTab() {
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const GENEROS = ["Horror", "Drama", "Ciencia Ficción", "Aventura", "Fantasía", "Misterio", "No ficción", "Biografía"];
+  const GENEROS = ["Horror", "Drama", "Ciencia Ficción", "Aventura", "Romance", "Misterio", "No ficción", "Biografía"];
 
   const { data: pdfs = [] } = useQuery({
     queryKey: ["adminPdfs", search],

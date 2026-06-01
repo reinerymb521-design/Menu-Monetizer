@@ -10,7 +10,7 @@ const GENRES = [
   { label: "Drama", emoji: "🎭" },
   { label: "Ciencia Ficción", emoji: "🚀" },
   { label: "Aventura", emoji: "🏔️" },
-  { label: "Fantasía", emoji: "🧙" },
+  { label: "Romance", emoji: "💖" },
   { label: "Misterio", emoji: "🔍" },
 ];
 

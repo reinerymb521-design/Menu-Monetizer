@@ -10,6 +10,7 @@ export interface Libro {
   descripcion: string | null;
   genero: string;
   es_premium: boolean;
+  pdf_url?: string | null;
 }
 
 export default function BookCard({ book }: { book: Libro }) {

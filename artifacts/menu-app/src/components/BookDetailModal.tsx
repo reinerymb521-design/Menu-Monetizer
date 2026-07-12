@@ -28,8 +28,8 @@ export default function BookDetailModal({ book, onClose }: Props) {
     enabled: canAccess,
   });
 
-  const { data: pdfUrl } = useQuery({
-    queryKey: ["libro_pdf", book.id],
+  const { data: pdfUrl = null } = useQuery({
+    queryKey: ["libro_pdf_url", book.id],
     queryFn: async () => {
       try {
         const { data } = await supabase
@@ -43,17 +43,18 @@ export default function BookDetailModal({ book, onClose }: Props) {
       }
     },
     enabled: canAccess,
+    initialData: book.pdf_url ?? null,
   });
 
-  const handlePlay = (audiolibro: { id: string; titulo: string; audio_url: string }) => {
+  const handlePlay = (a: { id: string; titulo: string; audio_url: string }) => {
     loadAndPlay(
       {
-        id: audiolibro.id,
-        titulo: audiolibro.titulo || book.titulo,
+        id: a.id,
+        titulo: a.titulo || book.titulo,
         autor: book.autor,
         portada_url: book.portada_url ?? null,
       },
-      audiolibro.audio_url,
+      a.audio_url,
     );
     onClose();
   };
@@ -67,11 +68,11 @@ export default function BookDetailModal({ book, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg max-h-[90vh] overflow-y-auto glass-panel rounded-t-2xl sm:rounded-2xl p-5 space-y-4 animate-in slide-in-from-bottom"
+        className="w-full max-w-lg max-h-[90vh] overflow-y-auto glass-panel rounded-t-2xl sm:rounded-2xl p-5 space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex justify-between items-start">
+        <div className="flex justify-between items-start gap-3">
           <div className="flex gap-3 flex-1 min-w-0">
             <div className="w-16 h-24 rounded-md bg-white/5 overflow-hidden shrink-0">
               {book.portada_url ? (
@@ -93,7 +94,7 @@ export default function BookDetailModal({ book, onClose }: Props) {
               )}
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-white/10 transition">
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-white/10 transition shrink-0">
             <X className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
@@ -106,22 +107,19 @@ export default function BookDetailModal({ book, onClose }: Props) {
         {/* Acciones */}
         {!canAccess ? (
           <div className="w-full py-3 rounded-lg bg-yellow-400/10 border border-yellow-400/30 text-yellow-400 font-semibold text-sm flex items-center justify-center gap-2">
-            <Lock className="w-4 h-4" />
-            Contenido exclusivo VIP
+            <Lock className="w-4 h-4" /> Contenido exclusivo VIP
           </div>
         ) : (
           <div className="space-y-3">
-
             {/* Botón PDF */}
             {hasPdf && (
               <a
-                href={pdfUrl}
+                href={pdfUrl!}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 font-semibold text-sm flex items-center justify-center gap-2 hover:bg-red-500/20 transition"
               >
-                <FileText className="w-4 h-4" />
-                Leer PDF
+                <FileText className="w-4 h-4" /> Leer PDF
               </a>
             )}
 
@@ -130,7 +128,7 @@ export default function BookDetailModal({ book, onClose }: Props) {
               <div className="flex justify-center py-2">
                 <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
               </div>
-            ) : audiolibros.length > 0 && (
+            ) : audiolibros.length > 0 ? (
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
                   <Headphones className="w-3.5 h-3.5" />
@@ -147,7 +145,7 @@ export default function BookDetailModal({ book, onClose }: Props) {
                   </button>
                 ))}
               </div>
-            )}
+            ) : null}
 
             {/* Sin contenido */}
             {!loadingAudio && !hasContent && (

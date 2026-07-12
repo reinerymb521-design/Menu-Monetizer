@@ -4,155 +4,138 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
   BarChart3, BookOpen, Users, Crown, Plus, Trash2, Edit, Shield,
-  Search, X, Upload, Loader2, FileText,
+  Search, Upload, Loader2, FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmButton from "./ConfirmButton";
 import {
-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, BarChart, Bar, CartesianGrid,
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip,
+  BarChart, Bar, CartesianGrid,
 } from "recharts";
 
 type Tab = "dashboard" | "libros" | "pdfs" | "usuarios";
 
 export default function AdminPanel() {
-  const { user, isAdmin, loading } = useAuth();
+  const { isAdmin, loading } = useAuth();
   const [tab, setTab] = useState<Tab>("dashboard");
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
   if (!isAdmin) return (
     <div className="glass-panel p-8 text-center space-y-3">
       <Shield className="w-12 h-12 mx-auto text-destructive opacity-50" />
-      <h2 className="text-lg font-bold">Acceso denegado</h2>
-      <p className="text-sm text-muted-foreground">Necesitas permiso de administrador.</p>
+      <h2 className="text-muted-foreground">Acceso denegado</h2>
     </div>
   );
 
+  const TABS: Array<[Tab, any, string]> = [
+    ["dashboard", BarChart3, "Dashboard"],
+    ["libros", BookOpen, "Audiolibros"],
+    ["pdfs", FileText, "PDFs"],
+    ["usuarios", Users, "Usuarios"],
+  ];
+
   return (
     <section className="space-y-4">
-      <h2 className="text-lg font-bold flex items-center gap-2"><Shield className="w-5 h-5" /> Panel Admin</h2>
+      <h2 className="text-lg font-bold flex items-center gap-2">
+        <Shield className="w-5 h-5" /> Panel Admin
+      </h2>
       <div className="flex gap-2 overflow-x-auto pb-1">
-        {([
-          ["dashboard", BarChart3, "Dashboard"],
-          ["libros", BookOpen, "Audiolibros"],
-          ["pdfs", FileText, "PDFs"],
-          ["usuarios", Users, "Usuarios"],
-        ] as const).map(([id, Icon, label]) => (
-          <button key={id} onClick={() => setTab(id)} className={`chip ${tab === id ? "active" : ""} flex items-center gap-1.5 shrink-0`}>
+        {TABS.map(([id, Icon, label]) => (
+          <button
+            key={id}
+            onClick={() => setTab(id)}
+            className={`chip ${tab === id ? "active" : ""} flex items-center gap-1.5 shrink-0`}
+          >
             <Icon className="w-3.5 h-3.5" /> {label}
           </button>
         ))}
       </div>
       {tab === "dashboard" && <DashboardTab />}
-      {tab === "libros" && <LibrosTab />}
-      {tab === "pdfs" && <PdfsTab />}
-      {tab === "usuarios" && <UsuariosTab />}
+      {tab === "libros"    && <LibrosTab />}
+      {tab === "pdfs"      && <PdfsTab />}
+      {tab === "usuarios"  && <UsuariosTab />}
     </section>
   );
 }
 
-/* ---------- DASHBOARD ---------- */
+/* ─── DASHBOARD ──────────────────────────────────────────────── */
 function DashboardTab() {
   const { data: stats } = useQuery({
     queryKey: ["adminStats"],
     queryFn: async () => {
       const [libros, perfiles, premium] = await Promise.all([
-        supabase.from("libros").select("id", { count: "exact", head: true }),
+        supabase.from("libros").select("id",   { count: "exact", head: true }),
         supabase.from("perfiles").select("id", { count: "exact", head: true }),
         supabase.from("perfiles").select("id", { count: "exact", head: true }).eq("es_premium", true),
       ]);
       return {
-        totalLibros: libros.count ?? 0,
+        totalLibros:   libros.count   ?? 0,
         totalUsuarios: perfiles.count ?? 0,
-        totalVIP: premium.count ?? 0,
+        totalVIP:      premium.count  ?? 0,
       };
     },
   });
 
-  const { data: weeklyUsers = [] } = useQuery({
-    queryKey: ["weeklyUsers"],
-    queryFn: async () => {
-      const { data } = await supabase.from("perfiles").select("id");
-      const buckets: Record<string, number> = {};
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        buckets[d.toISOString().slice(5, 10)] = 0;
-      }
-      const count = (data || []).length;
-      const keys = Object.keys(buckets);
-      keys.forEach((k, i) => { if (i === keys.length - 1) buckets[k] = count; });
-      return Object.entries(buckets).map(([day, count]) => ({ day, count }));
-    },
-  });
-
-  const { data: topLibros = [] } = useQuery({
-    queryKey: ["topLibros"],
-    queryFn: async () => {
-      const { data } = await supabase.from("libros").select("titulo").limit(5);
-      return (data || []).map((b, i) => ({
-        name: b.titulo.length > 12 ? b.titulo.slice(0, 12) + "…" : b.titulo,
-        vistas: Math.floor(Math.random() * 100) + 10 - i * 5,
-      }));
-    },
-  });
-
-  const cards = [
-    { label: "Libros", value: stats?.totalLibros ?? 0, icon: BookOpen, color: "text-primary" },
-    { label: "Usuarios", value: stats?.totalUsuarios ?? 0, icon: Users, color: "text-accent" },
-    { label: "VIP", value: stats?.totalVIP ?? 0, icon: Crown, color: "text-yellow-400" },
+  const chartData = [
+    { name: "Lun", usuarios: 40, libros: 24 },
+    { name: "Mar", usuarios: 30, libros: 13 },
+    { name: "Mié", usuarios: 20, libros: 38 },
+    { name: "Jue", usuarios: 27, libros: 39 },
+    { name: "Vie", usuarios: 18, libros: 48 },
+    { name: "Sáb", usuarios: 23, libros: 38 },
+    { name: "Dom", usuarios: 34, libros: 43 },
   ];
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3">
-        {cards.map((c) => (
-          <div key={c.label} className="glass-panel p-4 text-center space-y-1">
-            <c.icon className={`w-6 h-6 mx-auto ${c.color}`} />
-            <p className="text-2xl font-bold">{c.value}</p>
-            <p className="text-[10px] text-muted-foreground">{c.label}</p>
+        {[
+          { l: "Libros",   v: stats?.totalLibros,   I: BookOpen },
+          { l: "Usuarios", v: stats?.totalUsuarios, I: Users },
+          { l: "VIP",      v: stats?.totalVIP,      I: Crown },
+        ].map((c, i) => (
+          <div key={i} className="glass-panel p-4 text-center">
+            <c.I className="mx-auto w-6 h-6 mb-2" />
+            <p className="text-2xl font-bold">{c.v ?? "—"}</p>
+            <p className="text-xs text-muted-foreground">{c.l}</p>
           </div>
         ))}
       </div>
 
-      <div className="glass-panel p-3 space-y-2">
-        <p className="text-xs font-semibold text-muted-foreground">Usuarios registrados (histórico)</p>
-        <div className="h-32">
-          <ResponsiveContainer>
-            <AreaChart data={weeklyUsers}>
-              <defs>
-                <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.6} />
-                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="day" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-              <YAxis hide />
-              <Tooltip contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }} />
-              <Area type="monotone" dataKey="count" stroke="hsl(var(--primary))" fill="url(#g1)" strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+      <div className="glass-panel p-3 h-56">
+        <p className="text-xs font-semibold mb-2 text-muted-foreground">Actividad semanal</p>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={chartData}>
+            <defs>
+              <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.8} />
+                <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="name" fontSize={9} stroke="#888" />
+            <YAxis fontSize={9} stroke="#888" />
+            <Tooltip contentStyle={{ backgroundColor: "#1a1a1a", border: "none", fontSize: 11 }} />
+            <Area type="monotone" dataKey="usuarios" stroke="var(--primary)" fill="url(#g1)" />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
 
-      <div className="glass-panel p-3 space-y-2">
-        <p className="text-xs font-semibold text-muted-foreground">Libros en catálogo</p>
-        <div className="h-40">
-          <ResponsiveContainer>
-            <BarChart data={topLibros}>
-              <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} opacity={0.3} />
-              <XAxis dataKey="name" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-              <YAxis hide />
-              <Tooltip contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }} />
-              <Bar dataKey="vistas" fill="hsl(var(--accent))" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+      <div className="glass-panel p-3 h-56">
+        <p className="text-xs font-semibold mb-2 text-muted-foreground">Distribución de contenido</p>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" />
+            <XAxis dataKey="name" fontSize={9} stroke="#888" />
+            <Tooltip cursor={{ fill: "#222" }} contentStyle={{ backgroundColor: "#1a1a1a", border: "none", fontSize: 11 }} />
+            <Bar dataKey="libros" fill="#82ca9d" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
 }
 
-/* ---------- LIBROS ---------- */
+/* ─── LIBROS ─────────────────────────────────────────────────── */
 function LibrosTab() {
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
@@ -164,416 +147,307 @@ function LibrosTab() {
     queryFn: async () => {
       let q = supabase
         .from("libros")
-        .select("id, titulo, autor, portada_url, genero, es_premium, descripcion")
+        .select("id, titulo, autor, portada_url, genero, es_premium, pdf_url")
         .limit(50);
       if (search) q = q.ilike("titulo", `%${search}%`);
       const { data } = await q;
-      return data || [];
+      return data ?? [];
     },
   });
 
   const deleteLibro = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("libros").delete().eq("id", id);
-      if (error) throw error;
+    mutationFn: async (id: string) => supabase.from("libros").delete().eq("id", id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["adminLibros"] });
+      toast.success("Libro eliminado");
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["adminLibros"] }); toast.success("Libro eliminado"); },
-    onError: () => toast.error("Error al eliminar"),
   });
+
+  const openNew  = () => { setEditing(null); setShowForm(true); };
+  const openEdit = (b: any) => { setEditing(b); setShowForm(true); };
+  const closeForm = () => {
+    setShowForm(false);
+    setEditing(null);
+    qc.invalidateQueries({ queryKey: ["adminLibros"] });
+  };
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <div className="glass-panel flex-1 flex items-center gap-2 px-3 py-2">
+      <div className="flex gap-2">
+        <div className="flex-1 flex items-center gap-2 bg-black/20 rounded px-2">
           <Search className="w-4 h-4 text-muted-foreground" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar libros..." className="flex-1 bg-transparent text-sm focus:outline-none text-foreground placeholder:text-muted-foreground" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar libro..."
+            className="flex-1 bg-transparent py-2 text-sm outline-none"
+          />
         </div>
-        <button onClick={() => { setEditing(null); setShowForm(true); }} className="p-2.5 rounded-lg bg-primary text-primary-foreground" aria-label="Nuevo libro">
-          <Plus className="w-4 h-4" />
+        <button onClick={openNew} className="bg-primary px-4 py-2 rounded text-sm flex items-center gap-1">
+          <Plus className="w-4 h-4" /> Nuevo
         </button>
       </div>
 
       {showForm && (
-        <LibroForm
-          libro={editing}
-          onClose={() => setShowForm(false)}
-          onSaved={() => { setShowForm(false); qc.invalidateQueries({ queryKey: ["adminLibros"] }); }}
-        />
+        <LibroForm libro={editing} onClose={closeForm} />
       )}
 
       {libros.map((b: any) => (
         <div key={b.id} className="glass-panel p-3 flex items-center gap-3">
-          <div className="w-10 h-14 rounded bg-white/5 overflow-hidden shrink-0 flex items-center justify-center">
-            {b.portada_url ? <img src={b.portada_url} alt="" className="w-full h-full object-cover" /> : <BookOpen className="w-5 h-5 text-muted-foreground" />}
+          <div className="w-10 h-14 rounded bg-white/5 overflow-hidden shrink-0">
+            {b.portada_url
+              ? <img src={b.portada_url} className="w-full h-full object-cover" />
+              : <div className="w-full h-full flex items-center justify-center"><BookOpen className="w-4 h-4 text-muted-foreground" /></div>
+            }
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold line-clamp-1">{b.titulo}</p>
-            <p className="text-[10px] text-muted-foreground">{b.autor} · {b.genero}</p>
-            {b.es_premium && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-yellow-400/20 text-yellow-400 font-medium">VIP</span>}
+            <p className="font-semibold text-sm line-clamp-1">{b.titulo}</p>
+            <p className="text-xs text-muted-foreground">{b.autor}</p>
+            <div className="flex gap-1 mt-0.5">
+              {b.es_premium && <span className="text-[10px] text-yellow-400 font-semibold">VIP</span>}
+              {b.pdf_url    && <span className="text-[10px] text-red-400">PDF</span>}
+            </div>
           </div>
-          <button onClick={() => { setEditing(b); setShowForm(true); }} className="p-1.5 rounded hover:bg-white/10" aria-label="Editar"><Edit className="w-3.5 h-3.5 text-muted-foreground" /></button>
+          <button onClick={() => openEdit(b)} className="p-1.5 hover:bg-white/10 rounded transition">
+            <Edit className="w-4 h-4" />
+          </button>
           <ConfirmButton
-            title="¿Eliminar este libro?"
-            description="Esta acción no se puede deshacer."
-            confirmLabel="Eliminar"
-            destructive
             onConfirm={() => deleteLibro.mutate(b.id)}
-            className="p-1.5 rounded hover:bg-white/10"
-            ariaLabel="Eliminar"
-          ><Trash2 className="w-3.5 h-3.5 text-destructive" /></ConfirmButton>
+            title="Eliminar"
+            description="¿Borrar este libro?"
+          />
         </div>
       ))}
     </div>
   );
 }
 
-function LibroForm({ libro, onClose, onSaved }: { libro: any; onClose: () => void; onSaved: () => void }) {
+function LibroForm({ libro, onClose }: { libro: any; onClose: () => void }) {
   const [form, setForm] = useState({
-    titulo: libro?.titulo || "",
-    autor: libro?.autor || "",
-    genero: libro?.genero || "Horror",
-    descripcion: libro?.descripcion || "",
-    portada_url: libro?.portada_url || "",
-    pdf_url: libro?.pdf_url || "",
-    es_premium: libro?.es_premium || false,
+    titulo:     libro?.titulo     ?? "",
+    autor:      libro?.autor      ?? "",
+    genero:     libro?.genero     ?? "Drama y Romance",
+    descripcion:libro?.descripcion?? "",
+    portada_url:libro?.portada_url?? "",
+    pdf_url:    libro?.pdf_url    ?? "",
+    es_premium: libro?.es_premium ?? false,
   });
-  const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [saving, setSaving]     = useState(false);
+  const [upCover, setUpCover]   = useState(false);
+  const [upPdf, setUpPdf]       = useState(false);
   const coverRef = useRef<HTMLInputElement>(null);
-  const pdfRef = useRef<HTMLInputElement>(null);
+  const pdfRef   = useRef<HTMLInputElement>(null);
 
-  const uploadCover = async (file: File) => {
+  const uploadFile = async (
+    file: File,
+    bucket: string,
+    field: "portada_url" | "pdf_url",
+    setUploading: (v: boolean) => void,
+  ) => {
     setUploading(true);
-    try {
-      const ext = file.name.split(".").pop();
-      const path = `${crypto.randomUUID()}.${ext}`;
-      const { error } = await supabase.storage.from("book-covers").upload(path, file, { upsert: false, contentType: file.type });
-      if (error) throw error;
-      const { data } = supabase.storage.from("book-covers").getPublicUrl(path);
-      setForm((f) => ({ ...f, portada_url: data.publicUrl }));
-      toast.success("Portada subida");
-    } catch (e: any) {
-      toast.error(e.message || "Error al subir portada");
-    } finally {
-      setUploading(false);
+    const path = `${Date.now()}-${file.name}`;
+    const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true });
+    if (!error) {
+      const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+      setForm((f) => ({ ...f, [field]: data.publicUrl }));
+      toast.success(field === "portada_url" ? "Portada subida" : "PDF subido");
+    } else {
+      toast.error(error.message);
     }
+    setUploading(false);
   };
 
-  const uploadPdf = async (file: File) => {
-    if (file.type !== "application/pdf") { toast.error("Solo se permiten archivos PDF"); return; }
-    setUploadingPdf(true);
-    try {
-      const path = `${crypto.randomUUID()}.pdf`;
-      const { error } = await supabase.storage.from("books-pdf").upload(path, file, { upsert: false, contentType: "application/pdf" });
-      if (error) throw error;
-      const { data } = supabase.storage.from("books-pdf").getPublicUrl(path);
-      setForm((f) => ({ ...f, pdf_url: data.publicUrl }));
-      toast.success("PDF subido correctamente");
-    } catch (e: any) {
-      toast.error(e.message || "Error al subir PDF");
-    } finally {
-      setUploadingPdf(false);
-    }
-  };
+  const GENEROS = [
+    "Drama y Romance", "Ciencia Ficción y Aventura",
+    "Terror y Suspenso", "Misterio",
+  ];
 
   const handleSave = async () => {
-    if (!form.titulo || !form.autor) { toast.error("Título y autor requeridos"); return; }
+    if (!form.titulo.trim()) { toast.error("El título es obligatorio"); return; }
     setSaving(true);
-    try {
-      if (libro) {
-        const { error } = await supabase.from("libros").update(form).eq("id", libro.id);
-        if (error) throw error;
-        toast.success("Libro actualizado");
-      } else {
-        const { error } = await supabase.from("libros").insert(form);
-        if (error) throw error;
-        toast.success("Libro creado");
-      }
-      onSaved();
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setSaving(false);
-    }
+    const { error } = libro
+      ? await supabase.from("libros").update(form).eq("id", libro.id)
+      : await supabase.from("libros").insert(form);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(libro ? "Libro actualizado" : "Libro creado");
+    onClose();
   };
 
-  const GENEROS = ["Horror", "Drama", "Ciencia Ficción", "Aventura", "Romance", "Misterio", "No ficción", "Biografía"];
-
   return (
-    <div className="glass-panel p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold">{libro ? "Editar libro" : "Nuevo libro"}</h3>
-        <button onClick={onClose}><X className="w-4 h-4 text-muted-foreground" /></button>
-      </div>
-      <input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} placeholder="Título" className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary" />
-      <input value={form.autor} onChange={(e) => setForm({ ...form, autor: e.target.value })} placeholder="Autor" className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary" />
-      <select value={form.genero} onChange={(e) => setForm({ ...form, genero: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-foreground focus:outline-none">
+    <div className="glass-panel p-4 space-y-3 border border-primary/20">
+      <h3 className="font-semibold text-sm">{libro ? "Editar libro" : "Nuevo libro"}</h3>
+
+      <input
+        value={form.titulo}
+        onChange={(e) => setForm({ ...form, titulo: e.target.value })}
+        placeholder="Título *"
+        className="w-full bg-black/30 border border-white/10 rounded p-2 text-sm outline-none focus:border-primary"
+      />
+      <input
+        value={form.autor}
+        onChange={(e) => setForm({ ...form, autor: e.target.value })}
+        placeholder="Autor"
+        className="w-full bg-black/30 border border-white/10 rounded p-2 text-sm outline-none focus:border-primary"
+      />
+      <textarea
+        value={form.descripcion}
+        onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
+        placeholder="Descripción"
+        rows={2}
+        className="w-full bg-black/30 border border-white/10 rounded p-2 text-sm outline-none focus:border-primary resize-none"
+      />
+      <select
+        value={form.genero}
+        onChange={(e) => setForm({ ...form, genero: e.target.value })}
+        className="w-full bg-black/30 border border-white/10 rounded p-2 text-sm outline-none focus:border-primary"
+      >
         {GENEROS.map((g) => <option key={g} value={g}>{g}</option>)}
       </select>
-      <textarea value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} placeholder="Descripción" rows={2} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none resize-none" />
 
       {/* Portada */}
       <div className="flex items-center gap-2">
-        <input value={form.portada_url} onChange={(e) => setForm({ ...form, portada_url: e.target.value })} placeholder="URL de portada" className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none" />
-        <button type="button" onClick={() => coverRef.current?.click()} disabled={uploading} className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-xs flex items-center gap-1.5 transition disabled:opacity-50 shrink-0">
-          {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />} Portada
+        <button
+          onClick={() => coverRef.current?.click()}
+          className="flex items-center gap-2 px-3 py-2 rounded border border-white/10 text-xs hover:bg-white/5 transition"
+        >
+          {upCover ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+          Subir portada
         </button>
-        <input ref={coverRef} type="file" accept="image/*" hidden onChange={(e) => e.target.files?.[0] && uploadCover(e.target.files[0])} />
+        {form.portada_url && <img src={form.portada_url} className="w-8 h-11 object-cover rounded" />}
+        <input
+          ref={coverRef} type="file" accept="image/*" className="hidden"
+          onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], "book-covers", "portada_url", setUpCover)}
+        />
       </div>
-      {form.portada_url && <img src={form.portada_url} alt="" className="w-16 h-20 rounded object-cover border border-white/10" />}
 
       {/* PDF */}
       <div className="flex items-center gap-2">
-        <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 min-w-0">
-          <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-          <span className="text-xs text-muted-foreground truncate">
-            {form.pdf_url ? form.pdf_url.split("/").pop() : "Sin PDF"}
-          </span>
-        </div>
-        <button type="button" onClick={() => pdfRef.current?.click()} disabled={uploadingPdf} className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-xs flex items-center gap-1.5 transition disabled:opacity-50 shrink-0">
-          {uploadingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />} PDF
+        <button
+          onClick={() => pdfRef.current?.click()}
+          className="flex items-center gap-2 px-3 py-2 rounded border border-red-500/20 text-xs text-red-400 hover:bg-red-500/10 transition"
+        >
+          {upPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+          Subir PDF
         </button>
-        <input ref={pdfRef} type="file" accept="application/pdf" hidden onChange={(e) => e.target.files?.[0] && uploadPdf(e.target.files[0])} />
+        {form.pdf_url && <span className="text-[10px] text-green-400">✓ PDF listo</span>}
+        <input
+          ref={pdfRef} type="file" accept="application/pdf" className="hidden"
+          onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], "books-pdf", "pdf_url", setUpPdf)}
+        />
       </div>
-      {form.pdf_url && (
-        <a href={form.pdf_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-primary hover:underline">
-          <FileText className="w-3.5 h-3.5" /> Ver PDF subido
-        </a>
-      )}
 
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={form.es_premium} onChange={(e) => setForm({ ...form, es_premium: e.target.checked })} className="rounded" />
-        <Crown className="w-4 h-4 text-yellow-400" /> Contenido VIP
+      <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={form.es_premium}
+          onChange={(e) => setForm({ ...form, es_premium: e.target.checked })}
+          className="accent-yellow-400"
+        />
+        Contenido VIP (solo premium)
       </label>
-      <button onClick={handleSave} disabled={saving} className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
-        {saving ? "Guardando..." : libro ? "Actualizar" : "Crear libro"}
-      </button>
+
+      <div className="flex gap-2 pt-1">
+        <button onClick={onClose} className="flex-1 py-2 rounded border border-white/10 text-sm hover:bg-white/5 transition">
+          Cancelar
+        </button>
+        <button onClick={handleSave} disabled={saving} className="flex-1 py-2 rounded bg-primary text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2">
+          {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+          Guardar
+        </button>
+      </div>
     </div>
   );
 }
 
-/* ---------- PDFs ---------- */
+/* ─── PDFs ───────────────────────────────────────────────────── */
 function PdfsTab() {
-  const qc = useQueryClient();
-  const [showForm, setShowForm] = useState(false);
-  const [search, setSearch] = useState("");
-  const pdfRef = useRef<HTMLInputElement>(null);
-  const [form, setForm] = useState({ titulo: "", genero: "" });
-  const [uploadingPdf, setUploadingPdf] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  const GENEROS = ["Horror", "Drama", "Ciencia Ficción", "Aventura", "Romance", "Misterio", "No ficción", "Biografía"];
-
   const { data: pdfs = [] } = useQuery({
-    queryKey: ["adminPdfs", search],
+    queryKey: ["libros_pdf"],
     queryFn: async () => {
-      let q = supabase.from("libros_pdf").select("id, titulo, url_pdf, genero, created_at").order("created_at", { ascending: false }).limit(50);
-      if (search) q = q.ilike("titulo", `%${search}%`);
-      const { data } = await q;
-      return data || [];
+      const { data } = await supabase
+        .from("libros_pdf")
+        .select("id, titulo, url_pdf, genero, created_at")
+        .order("created_at", { ascending: false });
+      return data ?? [];
     },
   });
-
-  const deletePdf = useMutation({
-    mutationFn: async (id: number) => {
-      const { error } = await supabase.from("libros_pdf").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["adminPdfs"] }); toast.success("PDF eliminado"); },
-    onError: () => toast.error("Error al eliminar"),
-  });
-
-  const uploadAndSave = async (file: File) => {
-    if (!form.titulo.trim()) { toast.error("Escribe el título primero"); return; }
-    if (file.type !== "application/pdf") { toast.error("Solo se permiten archivos PDF"); return; }
-    setUploadingPdf(true);
-    try {
-      const path = `${crypto.randomUUID()}.pdf`;
-      const { error: upErr } = await supabase.storage.from("books-pdf").upload(path, file, { upsert: false, contentType: "application/pdf" });
-      if (upErr) throw upErr;
-      const { data: urlData } = supabase.storage.from("books-pdf").getPublicUrl(path);
-      setSaving(true);
-      const { error: insErr } = await supabase.from("libros_pdf").insert({
-        titulo: form.titulo.trim(),
-        url_pdf: urlData.publicUrl,
-        genero: form.genero || null,
-      });
-      if (insErr) throw insErr;
-      toast.success("PDF subido y guardado");
-      setForm({ titulo: "", genero: "" });
-      setShowForm(false);
-      qc.invalidateQueries({ queryKey: ["adminPdfs"] });
-    } catch (e: any) {
-      toast.error(e.message || "Error al subir PDF");
-    } finally {
-      setUploadingPdf(false);
-      setSaving(false);
-    }
-  };
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <div className="glass-panel flex-1 flex items-center gap-2 px-3 py-2">
-          <Search className="w-4 h-4 text-muted-foreground" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar PDFs..." className="flex-1 bg-transparent text-sm focus:outline-none text-foreground placeholder:text-muted-foreground" />
+      <p className="text-xs text-muted-foreground">
+        Los PDFs vinculados a libros se gestionan desde la pestaña <strong>Audiolibros</strong> (botón "Subir PDF" en cada libro).
+      </p>
+      {pdfs.length === 0 ? (
+        <div className="glass-panel p-6 text-center text-muted-foreground text-sm">
+          No hay PDFs independientes aún.
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="p-2.5 rounded-lg bg-primary text-primary-foreground" aria-label="Nuevo PDF">
-          <Plus className="w-4 h-4" />
-        </button>
-      </div>
-
-      {showForm && (
-        <div className="glass-panel p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold">Subir nuevo PDF</h3>
-            <button onClick={() => setShowForm(false)}><X className="w-4 h-4 text-muted-foreground" /></button>
+      ) : (
+        pdfs.map((pdf: any) => (
+          <div key={pdf.id} className="glass-panel p-3 flex items-center gap-3">
+            <FileText className="w-5 h-5 text-red-400 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium line-clamp-1">{pdf.titulo}</p>
+              <p className="text-xs text-muted-foreground">{pdf.genero}</p>
+            </div>
+            {pdf.url_pdf && (
+              <a href={pdf.url_pdf} target="_blank" rel="noopener noreferrer" className="text-xs text-primary">
+                Ver
+              </a>
+            )}
           </div>
-          <input
-            value={form.titulo}
-            onChange={(e) => setForm({ ...form, titulo: e.target.value })}
-            placeholder="Título del libro"
-            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-          />
-          <select value={form.genero} onChange={(e) => setForm({ ...form, genero: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-foreground focus:outline-none">
-            <option value="">Sin género</option>
-            {GENEROS.map((g) => <option key={g} value={g}>{g}</option>)}
-          </select>
-          <button
-            type="button"
-            onClick={() => pdfRef.current?.click()}
-            disabled={uploadingPdf || saving || !form.titulo.trim()}
-            className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            {uploadingPdf || saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-            {uploadingPdf ? "Subiendo..." : saving ? "Guardando..." : "Seleccionar PDF y subir"}
-          </button>
-          <input ref={pdfRef} type="file" accept="application/pdf" hidden onChange={(e) => e.target.files?.[0] && uploadAndSave(e.target.files[0])} />
-        </div>
+        ))
       )}
-
-      {pdfs.length === 0 && !showForm && (
-        <div className="glass-panel p-6 text-center text-muted-foreground">
-          <FileText className="w-10 h-10 mx-auto mb-2 opacity-30" />
-          <p className="text-sm">No hay PDFs subidos aún</p>
-        </div>
-      )}
-
-      {pdfs.map((p: any) => (
-        <div key={p.id} className="glass-panel p-3 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
-            <FileText className="w-5 h-5 text-red-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold line-clamp-1">{p.titulo}</p>
-            {p.genero && <p className="text-[10px] text-muted-foreground">{p.genero}</p>}
-          </div>
-          <a href={p.url_pdf} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded hover:bg-white/10 text-primary">
-            <FileText className="w-3.5 h-3.5" />
-          </a>
-          <ConfirmButton
-            title="¿Eliminar este PDF?"
-            description="Esta acción no se puede deshacer."
-            confirmLabel="Eliminar"
-            destructive
-            onConfirm={() => deletePdf.mutate(p.id)}
-            className="p-1.5 rounded hover:bg-white/10"
-            ariaLabel="Eliminar"
-          ><Trash2 className="w-3.5 h-3.5 text-destructive" /></ConfirmButton>
-        </div>
-      ))}
     </div>
   );
 }
 
-/* ---------- USUARIOS ---------- */
+/* ─── USUARIOS ───────────────────────────────────────────────── */
 function UsuariosTab() {
   const qc = useQueryClient();
-  const [search, setSearch] = useState("");
 
   const { data: usuarios = [] } = useQuery({
-    queryKey: ["adminUsuarios", search],
+    queryKey: ["adminUsuarios"],
     queryFn: async () => {
-      let q = supabase
+      const { data } = await supabase
         .from("perfiles")
-        .select("id, user_id, email, avatar_url, es_premium, es_admin")
-        .limit(50);
-      if (search) q = q.ilike("email", `%${search}%`);
-      const { data } = await q;
-      return data || [];
+        .select("user_id, email, es_premium, es_admin");
+      return data ?? [];
     },
   });
 
-  const toggleVIP = useMutation({
-    mutationFn: async ({ userId, current }: { userId: string; current: boolean }) => {
-      const { error } = await supabase.from("perfiles").update({ es_premium: !current }).eq("user_id", userId);
-      if (error) throw error;
+  const updatePremium = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: boolean }) =>
+      supabase.from("perfiles").update({ es_premium: status }).eq("user_id", id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["adminUsuarios"] });
+      toast.success("Estado VIP actualizado");
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["adminUsuarios"] }); toast.success("VIP actualizado"); },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  const toggleAdmin = useMutation({
-    mutationFn: async ({ userId, current }: { userId: string; current: boolean }) => {
-      const { error } = await supabase.from("perfiles").update({ es_admin: !current }).eq("user_id", userId);
-      if (error) throw error;
-    },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["adminUsuarios"] }); toast.success("Rol actualizado"); },
-    onError: (e: any) => toast.error(e.message),
   });
 
   return (
-    <div className="space-y-3">
-      <div className="glass-panel flex items-center gap-2 px-3 py-2">
-        <Search className="w-4 h-4 text-muted-foreground" />
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por email..." className="flex-1 bg-transparent text-sm focus:outline-none text-foreground placeholder:text-muted-foreground" />
-      </div>
-
-      {usuarios.map((u: any) => {
-        const nombre = u.email?.split("@")[0] || "Usuario";
-        return (
-          <div key={u.id} className="glass-panel p-3 space-y-2">
-            <div className="flex items-center gap-3">
-              <img
-                src={u.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(nombre)}`}
-                alt=""
-                className="w-9 h-9 rounded-full border border-white/10 object-cover"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold line-clamp-1">{nombre}</p>
-                <p className="text-[10px] text-muted-foreground">{u.email}</p>
-                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                  {u.es_admin && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">Admin</span>}
-                  {u.es_premium && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-yellow-400/20 text-yellow-400 font-medium">VIP</span>}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <button
-                onClick={() => toggleVIP.mutate({ userId: u.user_id, current: u.es_premium })}
-                className="px-2 py-1 rounded-md bg-yellow-400/10 hover:bg-yellow-400/20 text-yellow-400 text-[10px] flex items-center gap-1 transition"
-              >
-                <Crown className="w-3 h-3" /> {u.es_premium ? "Quitar VIP" : "Dar VIP"}
-              </button>
-              <button
-                onClick={() => toggleAdmin.mutate({ userId: u.user_id, current: u.es_admin })}
-                className={`px-2 py-1 rounded-md text-[10px] flex items-center gap-1 transition ${
-                  u.es_admin ? "bg-primary/20 hover:bg-primary/30 text-primary" : "bg-white/10 hover:bg-white/20 text-muted-foreground"
-                }`}
-              >
-                <Shield className="w-3 h-3" /> {u.es_admin ? "Quitar admin" : "Dar admin"}
-              </button>
-            </div>
-          </div>
-        );
-      })}
-
+    <div className="space-y-2">
       {usuarios.length === 0 && (
-        <div className="glass-panel p-6 text-center text-muted-foreground">
-          <p className="text-sm">No se encontraron usuarios</p>
+        <div className="glass-panel p-6 text-center text-muted-foreground text-sm">
+          No hay usuarios registrados aún.
         </div>
       )}
+      {usuarios.map((u: any) => (
+        <div key={u.user_id} className="glass-panel p-3 flex justify-between items-center gap-2">
+          <div className="min-w-0">
+            <p className="font-semibold text-sm truncate">{u.email}</p>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded ${u.es_premium ? "bg-yellow-500/20 text-yellow-400" : "bg-gray-500/20 text-gray-400"}`}>
+              {u.es_premium ? "VIP" : "Gratuito"}
+            </span>
+          </div>
+          <button
+            onClick={() => updatePremium.mutate({ id: u.user_id, status: !u.es_premium })}
+            className={`px-3 py-1.5 text-xs rounded font-medium transition ${u.es_premium ? "bg-red-500/20 text-red-400 hover:bg-red-500/30" : "bg-green-500/20 text-green-400 hover:bg-green-500/30"}`}
+          >
+            {u.es_premium ? "Quitar VIP" : "Dar VIP"}
+          </button>
+        </div>
+      ))}
     </div>
   );
 }

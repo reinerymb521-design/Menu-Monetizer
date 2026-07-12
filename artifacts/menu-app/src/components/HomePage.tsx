@@ -1,182 +1,83 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Crown, Sparkles, FileText } from "lucide-react";
-import BookCard, { type Libro } from "./BookCard";
+import BookCard from "./BookCard";
+import { BookOpen } from "lucide-react";
+import type { SearchFilters } from "./SearchBar";
 
-const GENRES = [
-  { label: "Todos", emoji: "" },
-  { label: "Horror", emoji: "👻" },
-  { label: "Drama", emoji: "🎭" },
-  { label: "Ciencia Ficción", emoji: "🚀" },
-  { label: "Aventura", emoji: "🏔️" },
-  { label: "Romance", emoji: "💖" },
-  { label: "Misterio", emoji: "🔍" },
+const GENEROS = [
+  { label: "Todos",                      emoji: "🌎" },
+  { label: "Drama y Romance",            emoji: "💖" },
+  { label: "Ciencia Ficción y Aventura", emoji: "🚀" },
+  { label: "Terror y Suspenso",          emoji: "👻" },
+  { label: "Misterio",                   emoji: "🔍" },
 ];
 
 interface Props {
   searchQuery: string;
+  filters: SearchFilters;
 }
 
-export default function HomePage({ searchQuery }: Props) {
+export default function HomePage({ searchQuery, filters }: Props) {
   const [activeGenre, setActiveGenre] = useState("Todos");
 
-  const { data: libros = [], isLoading } = useQuery({
-    queryKey: ["libros", activeGenre, searchQuery],
+  const { data: books = [], isLoading } = useQuery({
+    queryKey: ["libros", activeGenre, searchQuery, filters],
     queryFn: async () => {
-      let query = supabase
+      let q = supabase
         .from("libros")
-        .select("id, titulo, autor, descripcion, portada_url, genero, es_premium");
-      if (activeGenre !== "Todos") query = query.eq("genero", activeGenre);
-      if (searchQuery)
-        query = query.or(
-          `titulo.ilike.%${searchQuery}%,autor.ilike.%${searchQuery}%`,
-        );
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data ?? []) as Libro[];
-    },
-  });
-
-  const { data: librosPdf = [] } = useQuery({
-    queryKey: ["librosPdf", searchQuery],
-    queryFn: async () => {
-      let query = supabase
-        .from("libros_pdf")
-        .select("id, titulo, url_pdf, genero")
+        .select("id, titulo, autor, descripcion, portada_url, genero, es_premium, pdf_url")
         .order("created_at", { ascending: false });
-      if (searchQuery) query = query.ilike("titulo", `%${searchQuery}%`);
-      const { data } = await query;
+
+      const generoFilter = filters.genero || (activeGenre !== "Todos" ? activeGenre : "");
+      if (generoFilter) q = q.ilike("genero", `%${generoFilter}%`);
+      if (searchQuery) q = q.or(`titulo.ilike.%${searchQuery}%,autor.ilike.%${searchQuery}%`);
+
+      const { data, error } = await q;
+      if (error) {
+        console.error("[libros query]", error.message);
+        return [];
+      }
       return data ?? [];
     },
   });
 
-  const { librosGratis, librosPremium } = useMemo(() => {
-    const gratis = libros.filter((b) => !b.es_premium);
-    const premium = libros.filter((b) => b.es_premium);
-    return { librosGratis: gratis, librosPremium: premium };
-  }, [libros]);
-
   return (
-    <section className="space-y-6">
-      <div>
-        <h2 className="text-lg font-bold">Descubre</h2>
-        <p className="text-sm text-muted-foreground">
-          Contenido reciente para ti
-        </p>
-      </div>
-
-      {/* Genre Chips */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
-        {GENRES.map((g) => (
+    <section className="space-y-6 pb-20">
+      {/* Filtros de Género */}
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+        {GENEROS.map((g) => (
           <button
             key={g.label}
             onClick={() => setActiveGenre(g.label)}
-            className={`chip ${activeGenre === g.label ? "active" : ""}`}
+            className={`px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition ${
+              activeGenre === g.label
+                ? "bg-primary text-white"
+                : "bg-white/5 text-muted-foreground hover:bg-white/10"
+            }`}
           >
             {g.emoji} {g.label}
           </button>
         ))}
       </div>
 
+      {/* Grid Principal */}
       {isLoading ? (
-        <div className="flex justify-center py-12">
-          <div className="loader-spinner" />
+        <div className="grid grid-cols-2 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="aspect-[3/4] rounded-lg bg-white/5 animate-pulse" />
+          ))}
         </div>
-      ) : libros.length === 0 ? (
+      ) : books.length === 0 ? (
         <div className="glass-panel p-8 text-center text-muted-foreground">
-          <p className="text-sm">
-            No hay contenido aún. ¡Pronto se llenará el universo! 🌌
-          </p>
+          <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-40" />
+          <p className="text-sm">No hay contenido aún. ¡Pronto se llenará el universo! 🚀</p>
         </div>
       ) : (
-        <div className="space-y-8">
-          {/* Contenido Gratuito */}
-          <div className="space-y-3">
-            <div className="flex items-baseline justify-between">
-              <h3 className="text-base font-bold flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-primary" />
-                Contenido Gratuito
-              </h3>
-              <span className="text-xs text-muted-foreground">
-                {librosGratis.length}{" "}
-                {librosGratis.length === 1 ? "título" : "títulos"}
-              </span>
-            </div>
-            {librosGratis.length === 0 ? (
-              <div className="glass-panel p-6 text-center text-muted-foreground">
-                <p className="text-sm">No hay títulos gratuitos en esta categoría.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-4">
-                {librosGratis.map((libro) => (
-                  <BookCard key={libro.id} book={libro} />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Premium */}
-          <div className="space-y-3">
-            <div className="flex items-baseline justify-between">
-              <h3 className="text-base font-bold flex items-center gap-2">
-                <Crown className="w-4 h-4 text-yellow-400" />
-                <span className="bg-gradient-to-r from-yellow-300 to-amber-500 bg-clip-text text-transparent">
-                  Premium
-                </span>
-              </h3>
-              <span className="text-xs text-muted-foreground">
-                {librosPremium.length}{" "}
-                {librosPremium.length === 1 ? "título" : "títulos"}
-              </span>
-            </div>
-            {librosPremium.length === 0 ? (
-              <div className="glass-panel p-6 text-center text-muted-foreground">
-                <p className="text-sm">Aún no hay títulos premium en esta categoría.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-4">
-                {librosPremium.map((libro) => (
-                  <BookCard key={libro.id} book={libro} />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Libros PDF */}
-      {librosPdf.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-baseline justify-between">
-            <h3 className="text-base font-bold flex items-center gap-2">
-              <FileText className="w-4 h-4 text-red-400" />
-              Libros PDF
-            </h3>
-            <span className="text-xs text-muted-foreground">
-              {librosPdf.length} {librosPdf.length === 1 ? "título" : "títulos"}
-            </span>
-          </div>
-          <div className="space-y-2">
-            {librosPdf.map((pdf: any) => (
-              <a
-                key={pdf.id}
-                href={pdf.url_pdf}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="glass-panel p-3 flex items-center gap-3 hover:bg-white/10 transition"
-              >
-                <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
-                  <FileText className="w-5 h-5 text-red-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold line-clamp-1">{pdf.titulo}</p>
-                  {pdf.genero && <p className="text-xs text-muted-foreground">{pdf.genero}</p>}
-                </div>
-                <span className="text-xs text-primary font-medium shrink-0">Leer →</span>
-              </a>
-            ))}
-          </div>
+        <div className="grid grid-cols-2 gap-4">
+          {books.map((book: any) => (
+            <BookCard key={book.id} book={book} />
+          ))}
         </div>
       )}
     </section>

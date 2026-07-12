@@ -3,11 +3,12 @@ import { supabase } from "../lib/supabase";
 
 const router: IRouter = Router();
 
+router.get("/libros", async (req, res) => {
   const { genero, premium, q, limit = "20" } = req.query as Record<string, string>;
 
   let query = supabase
     .from("libros")
-    .select("id, titulo, autor, url_portada, URL_PDF, genero, es_premium")
+    .select("id, titulo, autor, portada_url, pdf_url, genero, es_premium")
     .limit(Math.min(Number(limit) || 20, 100));
 
   if (genero) query = query.eq("genero", genero);
@@ -29,12 +30,12 @@ router.get("/libros/:id", async (req, res) => {
   const [libroRes, audiolibrosRes] = await Promise.all([
     supabase
       .from("libros")
-      .select("id, titulo, autor, url_portada, URL_PDF, genero, es_premium")
+      .select("id, titulo, autor, portada_url, pdf_url, genero, es_premium")
       .eq("id", id)
       .single(),
     supabase
       .from("audiolibros")
-      .select("id, titulo, portada_url")
+      .select("id, titulo, audio_url")
       .eq("libro_id", id),
   ]);
 
@@ -46,4 +47,3 @@ router.get("/libros/:id", async (req, res) => {
 });
 
 export default router;
- 

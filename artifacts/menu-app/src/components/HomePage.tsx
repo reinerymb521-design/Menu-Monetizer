@@ -15,10 +15,10 @@ export default function HomePage({ searchQuery }: { searchQuery: string }) {
   const [activeGenre, setActiveGenre] = useState("Todos");
 
   const { data: libros = [], isLoading } = useQuery({
-    queryKey: ["libros"],
+    queryKey: ["audiolibros"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("libros")
+        .from("audiolibros")
         .select("id, titulo, autor, genero, url_portada, es_premium, url_pdf");
 
       if (error) {

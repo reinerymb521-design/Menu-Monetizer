@@ -45,6 +45,11 @@ export default function HomePage({ searchQuery }: { searchQuery: string }) {
 
   return (
     <section className="space-y-6 pb-20">
+      {/* DEBUG TEMPORAL */}
+      <p style={{ color: "lime", fontWeight: "bold", fontSize: 16 }}>
+        libros.length = {libros.length}
+      </p>
+
       {/* Filtros de Género */}
       <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
         {GENEROS.map((g) => (

@@ -9,8 +9,7 @@ const GENEROS = [
   { label: "Todos",                      emoji: "🌎" },
   { label: "Drama y Romance",            emoji: "💖" },
   { label: "Ciencia Ficción y Aventura", emoji: "🚀" },
-  { label: "Terror",                     emoji: "👻" },
-  { label: "Misterio",                   emoji: "🔍" },
+  { label: "Terror y Suspenso",          emoji: "👻" },
 ];
 
 interface Props {

@@ -35,9 +35,11 @@ export default function HomePage({ searchQuery, filters }: Props) {
 
       const { data, error } = await q;
       if (error) {
-        console.error("[libros query]", error.message);
+        alert("Error de Supabase: " + error.message);
+        console.error("[libros query]", error);
         return [];
       }
+      console.log("Datos recibidos:", data);
       return data ?? [];
     },
   });

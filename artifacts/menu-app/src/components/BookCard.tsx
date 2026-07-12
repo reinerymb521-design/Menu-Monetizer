@@ -8,7 +8,7 @@ export interface Libro {
   autor: string;
   genero: string;
   url_portada: string | null;
-  url_pdf: string | null;
+  URL_PDF: string | null;
   es_premium: boolean;
 }
 
@@ -35,8 +35,8 @@ export default function BookCard({ libro }: { libro: Libro }) {
           )}
 
           <div className="absolute bottom-2 left-2 flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-semibold backdrop-blur-sm bg-black/60 text-white">
-            {libro.url_pdf ? <Book className="w-2.5 h-2.5" /> : <Headphones className="w-2.5 h-2.5" />}
-            {libro.url_pdf ? "Libro" : "Audio"}
+            {libro.URL_PDF ? <Book className="w-2.5 h-2.5" /> : <Headphones className="w-2.5 h-2.5" />}
+            {libro.URL_PDF ? "Libro" : "Audio"}
           </div>
 
           {libro.es_premium && (

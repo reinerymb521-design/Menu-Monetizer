@@ -14,21 +14,18 @@ const GENEROS = [
 export default function HomePage({ searchQuery }: { searchQuery: string }) {
   const [activeGenre, setActiveGenre] = useState("Todos");
 
-  const [supaError, setSupaError] = useState<string | null>(null);
-
   const { data: libros = [], isLoading } = useQuery({
     queryKey: ["libros"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("libros")
-        .select("*");
+        .select("id, titulo, autor, genero, url_portada, URL_PDF, es_premium");
 
       if (error) {
-        setSupaError(error.message);
+        console.error("[libros]", error.message);
         return [];
       }
 
-      setSupaError(null);
       return data ?? [];
     },
   });
@@ -48,20 +45,6 @@ export default function HomePage({ searchQuery }: { searchQuery: string }) {
 
   return (
     <section className="space-y-6 pb-20">
-      {/* DEBUG TEMPORAL */}
-      <div style={{ background: "#111", padding: 8, borderRadius: 8, fontSize: 12 }}>
-        <p style={{ color: "lime", fontWeight: "bold" }}>libros.length = {libros.length}</p>
-        {supaError && <p style={{ color: "red", marginTop: 4 }}>Error: {supaError}</p>}
-        {!supaError && libros.length === 0 && !isLoading && (
-          <p style={{ color: "orange", marginTop: 4 }}>Sin error, 0 resultados (revisar RLS)</p>
-        )}
-        {libros.length > 0 && (
-          <p style={{ color: "cyan", marginTop: 4 }}>
-            Columnas: {Object.keys((libros as any[])[0]).join(", ")}
-          </p>
-        )}
-      </div>
-
       {/* Filtros de Género */}
       <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
         {GENEROS.map((g) => (

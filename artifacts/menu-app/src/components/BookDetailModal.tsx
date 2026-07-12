@@ -28,7 +28,7 @@ export default function BookDetailModal({ libro, onClose }: Props) {
     enabled: canAccess,
   });
 
-  const pdfUrl: string | null = libro.url_pdf ?? null;
+  const pdfUrl: string | null = libro.URL_PDF ?? null;
 
   const handlePlay = (a: { id: string; titulo: string; audio_url: string }) => {
     loadAndPlay(

@@ -14,6 +14,8 @@ const GENEROS = [
 export default function HomePage({ searchQuery }: { searchQuery: string }) {
   const [activeGenre, setActiveGenre] = useState("Todos");
 
+  const [supaError, setSupaError] = useState<string | null>(null);
+
   const { data: libros = [], isLoading } = useQuery({
     queryKey: ["audiolibros"],
     queryFn: async () => {
@@ -22,10 +24,11 @@ export default function HomePage({ searchQuery }: { searchQuery: string }) {
         .select("id, titulo, autor, genero, url_portada, es_premium, url_pdf");
 
       if (error) {
-        console.error("[libros]", error.message);
+        setSupaError(error.message);
         return [];
       }
 
+      setSupaError(null);
       return data ?? [];
     },
   });
@@ -46,9 +49,13 @@ export default function HomePage({ searchQuery }: { searchQuery: string }) {
   return (
     <section className="space-y-6 pb-20">
       {/* DEBUG TEMPORAL */}
-      <p style={{ color: "lime", fontWeight: "bold", fontSize: 16 }}>
-        libros.length = {libros.length}
-      </p>
+      <div style={{ background: "#111", padding: 8, borderRadius: 8, fontSize: 13 }}>
+        <p style={{ color: "lime", fontWeight: "bold" }}>libros.length = {libros.length}</p>
+        {supaError && <p style={{ color: "red", marginTop: 4 }}>Error: {supaError}</p>}
+        {!supaError && libros.length === 0 && !isLoading && (
+          <p style={{ color: "orange", marginTop: 4 }}>Sin error pero 0 resultados</p>
+        )}
+      </div>
 
       {/* Filtros de Género */}
       <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">

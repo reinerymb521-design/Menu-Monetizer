@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import BookCard from "./BookCard";
 import { BookOpen } from "lucide-react";
-import type { SearchFilters } from "./SearchBar";
 
 const GENEROS = [
   { label: "Todos",                      emoji: "🌎" },
@@ -12,32 +11,36 @@ const GENEROS = [
   { label: "Terror y Suspenso",          emoji: "👻" },
 ];
 
-interface Props {
-  searchQuery: string;
-  filters: SearchFilters;
-}
-
-export default function HomePage({ searchQuery, filters }: Props) {
+export default function HomePage({ searchQuery }: { searchQuery: string }) {
   const [activeGenre, setActiveGenre] = useState("Todos");
 
-  const { data: books = [], isLoading } = useQuery({
-    queryKey: ["libros", activeGenre, searchQuery, filters],
+  const { data: libros = [], isLoading } = useQuery({
+    queryKey: ["libros"],
     queryFn: async () => {
-      let q = supabase
+      const { data, error } = await supabase
         .from("libros")
-        .select("id, titulo, autor, url_portada, URL_PDF, genero, es_premium");
+        .select("id, titulo, autor, genero, url_portada, es_premium, url_pdf");
 
-      const generoFilter = filters.genero || (activeGenre !== "Todos" ? activeGenre : "");
-      if (generoFilter) q = q.ilike("genero", `%${generoFilter}%`);
-      if (searchQuery) q = q.or(`titulo.ilike.%${searchQuery}%,autor.ilike.%${searchQuery}%`);
-
-      const { data, error } = await q;
       if (error) {
-        console.error("[libros query]", error.message);
+        console.error("[libros]", error.message);
         return [];
       }
+
       return data ?? [];
     },
+  });
+
+  const librosFiltrados = libros.filter((libro: any) => {
+    const coincideGenero =
+      activeGenre === "Todos" ||
+      (libro.genero ?? "").toLowerCase().includes(activeGenre.toLowerCase());
+
+    const coincideBusqueda =
+      !searchQuery ||
+      (libro.titulo ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (libro.autor ?? "").toLowerCase().includes(searchQuery.toLowerCase());
+
+    return coincideGenero && coincideBusqueda;
   });
 
   return (
@@ -66,15 +69,19 @@ export default function HomePage({ searchQuery, filters }: Props) {
             <div key={i} className="aspect-[3/4] rounded-lg bg-white/5 animate-pulse" />
           ))}
         </div>
-      ) : books.length === 0 ? (
+      ) : librosFiltrados.length === 0 ? (
         <div className="glass-panel p-8 text-center text-muted-foreground">
           <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-40" />
-          <p className="text-sm">No hay contenido aún. ¡Pronto se llenará el universo! 🚀</p>
+          <p className="text-sm">
+            {libros.length === 0
+              ? "No hay contenido aún. ¡Pronto se llenará el universo! 🚀"
+              : "No se encontraron libros con ese filtro."}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4">
-          {books.map((book: any) => (
-            <BookCard key={book.id} book={book} />
+          {librosFiltrados.map((libro: any) => (
+            <BookCard key={libro.id} libro={libro} />
           ))}
         </div>
       )}

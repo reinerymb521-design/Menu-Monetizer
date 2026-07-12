@@ -6,53 +6,37 @@ import { X, BookOpen, Play, Crown, Lock, Headphones, Loader2, FileText } from "l
 import type { Libro } from "./BookCard";
 
 interface Props {
-  book: Libro;
+  libro: Libro;
   onClose: () => void;
 }
 
-export default function BookDetailModal({ book, onClose }: Props) {
+export default function BookDetailModal({ libro, onClose }: Props) {
   const { isPremium } = useAuth();
   const { loadAndPlay } = useAudioPlayer();
 
-  const canAccess = !book.es_premium || isPremium;
+  const canAccess = !libro.es_premium || isPremium;
 
   const { data: audiolibros = [], isLoading: loadingAudio } = useQuery({
-    queryKey: ["audiolibros", book.id],
+    queryKey: ["audiolibros", libro.id],
     queryFn: async () => {
       const { data } = await supabase
         .from("audiolibros")
         .select("id, titulo, audio_url")
-        .eq("libro_id", book.id);
+        .eq("libro_id", libro.id);
       return data ?? [];
     },
     enabled: canAccess,
   });
 
-  const { data: pdfUrl = null } = useQuery({
-    queryKey: ["libro_pdf_url", book.id],
-    queryFn: async () => {
-      try {
-        const { data } = await supabase
-          .from("libros")
-          .select("URL_PDF")
-          .eq("id", book.id)
-          .single();
-        return (data as any)?.URL_PDF ?? null;
-      } catch {
-        return null;
-      }
-    },
-    enabled: canAccess,
-    initialData: book.URL_PDF ?? null,
-  });
+  const pdfUrl: string | null = libro.url_pdf ?? null;
 
   const handlePlay = (a: { id: string; titulo: string; audio_url: string }) => {
     loadAndPlay(
       {
         id: a.id,
-        titulo: a.titulo || book.titulo,
-        autor: book.autor,
-        portada_url: book.url_portada ?? null,
+        titulo: a.titulo || libro.titulo,
+        autor: libro.autor,
+        portada_url: libro.url_portada ?? null,
       },
       a.audio_url,
     );
@@ -75,8 +59,8 @@ export default function BookDetailModal({ book, onClose }: Props) {
         <div className="flex justify-between items-start gap-3">
           <div className="flex gap-3 flex-1 min-w-0">
             <div className="w-16 h-24 rounded-md bg-white/5 overflow-hidden shrink-0">
-              {book.url_portada ? (
-                <img src={book.url_portada} alt={book.titulo} className="w-full h-full object-cover" />
+              {libro.url_portada ? (
+                <img src={libro.url_portada} alt={libro.titulo} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                   <BookOpen className="w-6 h-6" />
@@ -84,10 +68,10 @@ export default function BookDetailModal({ book, onClose }: Props) {
               )}
             </div>
             <div className="min-w-0">
-              <h2 className="font-bold text-foreground leading-tight line-clamp-2">{book.titulo}</h2>
-              <p className="text-sm text-muted-foreground">{book.autor}</p>
-              <p className="text-xs text-primary mt-1">{book.genero}</p>
-              {book.es_premium && (
+              <h2 className="font-bold text-foreground leading-tight line-clamp-2">{libro.titulo}</h2>
+              <p className="text-sm text-muted-foreground">{libro.autor}</p>
+              <p className="text-xs text-primary mt-1">{libro.genero}</p>
+              {libro.es_premium && (
                 <span className="inline-flex items-center gap-1 mt-1 text-[10px] px-2 py-0.5 rounded-full bg-yellow-400/20 text-yellow-400 font-semibold">
                   <Crown className="w-3 h-3" /> VIP
                 </span>
@@ -136,7 +120,7 @@ export default function BookDetailModal({ book, onClose }: Props) {
                     className="w-full py-2.5 px-3 rounded-lg bg-primary/10 border border-primary/20 text-foreground text-sm flex items-center gap-2 hover:bg-primary/20 transition text-left"
                   >
                     <Play className="w-4 h-4 text-primary shrink-0" />
-                    <span className="line-clamp-1">{a.titulo || book.titulo}</span>
+                    <span className="line-clamp-1">{a.titulo || libro.titulo}</span>
                   </button>
                 ))}
               </div>

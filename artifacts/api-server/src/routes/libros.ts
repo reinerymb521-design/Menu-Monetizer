@@ -8,7 +8,7 @@ router.get("/libros", async (req, res) => {
 
   let query = supabase
     .from("libros")
-    .select("id, titulo, autor, portada_url, pdf_url, genero, es_premium")
+    .select("id, titulo, autor, url_portada, genero, es_premium")
     .limit(Math.min(Number(limit) || 20, 100));
 
   if (genero) query = query.eq("genero", genero);
@@ -30,7 +30,7 @@ router.get("/libros/:id", async (req, res) => {
   const [libroRes, audiolibrosRes] = await Promise.all([
     supabase
       .from("libros")
-      .select("id, titulo, autor, portada_url, pdf_url, genero, es_premium")
+      .select("id, titulo, autor, url_portada, genero, es_premium")
       .eq("id", id)
       .single(),
     supabase

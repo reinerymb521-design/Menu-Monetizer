@@ -6,10 +6,10 @@ export interface Libro {
   id: string;
   titulo: string;
   autor: string;
-  portada_url: string | null;
+  url_portada: string | null;
   genero: string;
   es_premium: boolean;
-  pdf_url?: string | null;
+  url_pdf?: string | null;
 }
 
 export default function BookCard({ book }: { book: Libro }) {
@@ -22,9 +22,9 @@ export default function BookCard({ book }: { book: Libro }) {
         onClick={() => setShowDetail(true)}
       >
         <div className="relative w-full aspect-[3/4] rounded-lg bg-white/5 overflow-hidden">
-          {book.portada_url ? (
+          {book.url_portada ? (
             <img
-              src={book.portada_url}
+              src={book.url_portada}
               alt={book.titulo}
               className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
             />
@@ -35,8 +35,8 @@ export default function BookCard({ book }: { book: Libro }) {
           )}
 
           <div className="absolute bottom-2 left-2 flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-semibold backdrop-blur-sm bg-black/60 text-white">
-            {book.pdf_url ? <Book className="w-2.5 h-2.5" /> : <Headphones className="w-2.5 h-2.5" />}
-            {book.pdf_url ? "Libro" : "Audio"}
+            {book.url_pdf ? <Book className="w-2.5 h-2.5" /> : <Headphones className="w-2.5 h-2.5" />}
+            {book.url_pdf ? "Libro" : "Audio"}
           </div>
 
           {book.es_premium && (

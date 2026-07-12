@@ -147,7 +147,7 @@ function LibrosTab() {
     queryFn: async () => {
       let q = supabase
         .from("libros")
-        .select("id, titulo, autor, portada_url, genero, es_premium, pdf_url")
+        .select("id, titulo, autor, url_portada, genero, es_premium, url_pdf")
         .limit(50);
       if (search) q = q.ilike("titulo", `%${search}%`);
       const { data } = await q;
@@ -195,8 +195,8 @@ function LibrosTab() {
       {libros.map((b: any) => (
         <div key={b.id} className="glass-panel p-3 flex items-center gap-3">
           <div className="w-10 h-14 rounded bg-white/5 overflow-hidden shrink-0">
-            {b.portada_url
-              ? <img src={b.portada_url} className="w-full h-full object-cover" />
+            {b.url_portada
+              ? <img src={b.url_portada} className="w-full h-full object-cover" />
               : <div className="w-full h-full flex items-center justify-center"><BookOpen className="w-4 h-4 text-muted-foreground" /></div>
             }
           </div>
@@ -204,8 +204,8 @@ function LibrosTab() {
             <p className="font-semibold text-sm line-clamp-1">{b.titulo}</p>
             <p className="text-xs text-muted-foreground">{b.autor}</p>
             <div className="flex gap-1 mt-0.5">
-              {b.es_premium && <span className="text-[10px] text-yellow-400 font-semibold">VIP</span>}
-              {b.pdf_url    && <span className="text-[10px] text-red-400">PDF</span>}
+              {b.es_premium  && <span className="text-[10px] text-yellow-400 font-semibold">VIP</span>}
+              {b.url_pdf     && <span className="text-[10px] text-red-400">PDF</span>}
             </div>
           </div>
           <button onClick={() => openEdit(b)} className="p-1.5 hover:bg-white/10 rounded transition">
@@ -224,12 +224,12 @@ function LibrosTab() {
 
 function LibroForm({ libro, onClose }: { libro: any; onClose: () => void }) {
   const [form, setForm] = useState({
-    titulo:     libro?.titulo     ?? "",
-    autor:      libro?.autor      ?? "",
-    genero:     libro?.genero     ?? "Drama y Romance",
-    portada_url:libro?.portada_url?? "",
-    pdf_url:    libro?.pdf_url    ?? "",
-    es_premium: libro?.es_premium ?? false,
+    titulo:      libro?.titulo      ?? "",
+    autor:       libro?.autor       ?? "",
+    genero:      libro?.genero      ?? "Drama y Romance",
+    url_portada: libro?.url_portada ?? "",
+    url_pdf:     libro?.url_pdf     ?? "",
+    es_premium:  libro?.es_premium  ?? false,
   });
   const [saving, setSaving]     = useState(false);
   const [upCover, setUpCover]   = useState(false);
@@ -240,7 +240,7 @@ function LibroForm({ libro, onClose }: { libro: any; onClose: () => void }) {
   const uploadFile = async (
     file: File,
     bucket: string,
-    field: "portada_url" | "pdf_url",
+    field: "url_portada" | "url_pdf",
     setUploading: (v: boolean) => void,
   ) => {
     setUploading(true);
@@ -249,7 +249,7 @@ function LibroForm({ libro, onClose }: { libro: any; onClose: () => void }) {
     if (!error) {
       const { data } = supabase.storage.from(bucket).getPublicUrl(path);
       setForm((f) => ({ ...f, [field]: data.publicUrl }));
-      toast.success(field === "portada_url" ? "Portada subida" : "PDF subido");
+      toast.success(field === "url_portada" ? "Portada subida" : "PDF subido");
     } else {
       toast.error(error.message);
     }
@@ -306,10 +306,10 @@ function LibroForm({ libro, onClose }: { libro: any; onClose: () => void }) {
           {upCover ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
           Subir portada
         </button>
-        {form.portada_url && <img src={form.portada_url} className="w-8 h-11 object-cover rounded" />}
+        {form.url_portada && <img src={form.url_portada} className="w-8 h-11 object-cover rounded" />}
         <input
           ref={coverRef} type="file" accept="image/*" className="hidden"
-          onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], "book-covers", "portada_url", setUpCover)}
+          onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], "book-covers", "url_portada", setUpCover)}
         />
       </div>
 
@@ -322,10 +322,10 @@ function LibroForm({ libro, onClose }: { libro: any; onClose: () => void }) {
           {upPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
           Subir PDF
         </button>
-        {form.pdf_url && <span className="text-[10px] text-green-400">✓ PDF listo</span>}
+        {form.url_pdf && <span className="text-[10px] text-green-400">✓ PDF listo</span>}
         <input
           ref={pdfRef} type="file" accept="application/pdf" className="hidden"
-          onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], "books-pdf", "pdf_url", setUpPdf)}
+          onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], "books-pdf", "url_pdf", setUpPdf)}
         />
       </div>
 

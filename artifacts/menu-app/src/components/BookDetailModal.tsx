@@ -34,16 +34,16 @@ export default function BookDetailModal({ book, onClose }: Props) {
       try {
         const { data } = await supabase
           .from("libros")
-          .select("pdf_url")
+          .select("url_pdf")
           .eq("id", book.id)
           .single();
-        return (data as any)?.pdf_url ?? null;
+        return (data as any)?.url_pdf ?? null;
       } catch {
         return null;
       }
     },
     enabled: canAccess,
-    initialData: book.pdf_url ?? null,
+    initialData: book.url_pdf ?? null,
   });
 
   const handlePlay = (a: { id: string; titulo: string; audio_url: string }) => {
@@ -52,7 +52,7 @@ export default function BookDetailModal({ book, onClose }: Props) {
         id: a.id,
         titulo: a.titulo || book.titulo,
         autor: book.autor,
-        portada_url: book.portada_url ?? null,
+        portada_url: book.url_portada ?? null,
       },
       a.audio_url,
     );
@@ -75,8 +75,8 @@ export default function BookDetailModal({ book, onClose }: Props) {
         <div className="flex justify-between items-start gap-3">
           <div className="flex gap-3 flex-1 min-w-0">
             <div className="w-16 h-24 rounded-md bg-white/5 overflow-hidden shrink-0">
-              {book.portada_url ? (
-                <img src={book.portada_url} alt={book.titulo} className="w-full h-full object-cover" />
+              {book.url_portada ? (
+                <img src={book.url_portada} alt={book.titulo} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                   <BookOpen className="w-6 h-6" />

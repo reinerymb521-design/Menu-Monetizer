@@ -147,7 +147,7 @@ function LibrosTab() {
     queryFn: async () => {
       let q = supabase
         .from("libros")
-        .select("id, titulo, autor, url_portada, genero, es_premium, url_pdf")
+        .select("id, titulo, autor, url_portada, genero, es_premium, URL_PDF")
         .limit(50);
       if (search) q = q.ilike("titulo", `%${search}%`);
       const { data } = await q;
@@ -205,7 +205,7 @@ function LibrosTab() {
             <p className="text-xs text-muted-foreground">{b.autor}</p>
             <div className="flex gap-1 mt-0.5">
               {b.es_premium  && <span className="text-[10px] text-yellow-400 font-semibold">VIP</span>}
-              {b.url_pdf     && <span className="text-[10px] text-red-400">PDF</span>}
+              {b.URL_PDF     && <span className="text-[10px] text-red-400">PDF</span>}
             </div>
           </div>
           <button onClick={() => openEdit(b)} className="p-1.5 hover:bg-white/10 rounded transition">
@@ -228,7 +228,7 @@ function LibroForm({ libro, onClose }: { libro: any; onClose: () => void }) {
     autor:       libro?.autor       ?? "",
     genero:      libro?.genero      ?? "Drama y Romance",
     url_portada: libro?.url_portada ?? "",
-    url_pdf:     libro?.url_pdf     ?? "",
+    URL_PDF:     libro?.URL_PDF     ?? "",
     es_premium:  libro?.es_premium  ?? false,
   });
   const [saving, setSaving]     = useState(false);
@@ -240,7 +240,7 @@ function LibroForm({ libro, onClose }: { libro: any; onClose: () => void }) {
   const uploadFile = async (
     file: File,
     bucket: string,
-    field: "url_portada" | "url_pdf",
+    field: "url_portada" | "URL_PDF",
     setUploading: (v: boolean) => void,
   ) => {
     setUploading(true);
@@ -250,6 +250,7 @@ function LibroForm({ libro, onClose }: { libro: any; onClose: () => void }) {
       const { data } = supabase.storage.from(bucket).getPublicUrl(path);
       setForm((f) => ({ ...f, [field]: data.publicUrl }));
       toast.success(field === "url_portada" ? "Portada subida" : "PDF subido");
+
     } else {
       toast.error(error.message);
     }
@@ -322,10 +323,10 @@ function LibroForm({ libro, onClose }: { libro: any; onClose: () => void }) {
           {upPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
           Subir PDF
         </button>
-        {form.url_pdf && <span className="text-[10px] text-green-400">✓ PDF listo</span>}
+        {form.URL_PDF && <span className="text-[10px] text-green-400">✓ PDF listo</span>}
         <input
           ref={pdfRef} type="file" accept="application/pdf" className="hidden"
-          onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], "books-pdf", "url_pdf", setUpPdf)}
+          onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], "books-pdf", "URL_PDF", setUpPdf)}
         />
       </div>
 

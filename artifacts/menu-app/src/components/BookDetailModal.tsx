@@ -34,16 +34,16 @@ export default function BookDetailModal({ book, onClose }: Props) {
       try {
         const { data } = await supabase
           .from("libros")
-          .select("url_pdf")
+          .select("URL_PDF")
           .eq("id", book.id)
           .single();
-        return (data as any)?.url_pdf ?? null;
+        return (data as any)?.URL_PDF ?? null;
       } catch {
         return null;
       }
     },
     enabled: canAccess,
-    initialData: book.url_pdf ?? null,
+    initialData: book.URL_PDF ?? null,
   });
 
   const handlePlay = (a: { id: string; titulo: string; audio_url: string }) => {

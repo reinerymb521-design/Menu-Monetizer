@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAudioPlayer } from "@/contexts/AudioPlayerContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { X, BookOpen, Play, Crown, Lock, Headphones, Loader2, FileText } from "lucide-react";
 import type { Libro } from "./BookCard";
+import PDFViewerModal from "./PDFViewerModal";
 
 interface Props {
   libro: Libro;
@@ -13,6 +15,7 @@ interface Props {
 export default function BookDetailModal({ libro, onClose }: Props) {
   const { isPremium } = useAuth();
   const { loadAndPlay } = useAudioPlayer();
+  const [showPDF, setShowPDF] = useState(false);
 
   const canAccess = !libro.es_premium || isPremium;
 
@@ -45,6 +48,16 @@ export default function BookDetailModal({ libro, onClose }: Props) {
 
   const hasPdf = !!pdfUrl;
   const hasContent = hasPdf || audiolibros.length > 0;
+
+  if (showPDF && pdfUrl) {
+    return (
+      <PDFViewerModal
+        url={pdfUrl}
+        titulo={libro.titulo}
+        onClose={() => setShowPDF(false)}
+      />
+    );
+  }
 
   return (
     <div
@@ -90,16 +103,14 @@ export default function BookDetailModal({ libro, onClose }: Props) {
           </div>
         ) : (
           <div className="space-y-3">
-            {/* Botón PDF */}
+            {/* Botón PDF — abre dentro de la app */}
             {hasPdf && (
-              <a
-                href={pdfUrl!}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => setShowPDF(true)}
                 className="w-full py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 font-semibold text-sm flex items-center justify-center gap-2 hover:bg-red-500/20 transition"
               >
                 <FileText className="w-4 h-4" /> Leer PDF
-              </a>
+              </button>
             )}
 
             {/* Capítulos de audio */}

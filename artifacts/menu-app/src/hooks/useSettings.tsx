@@ -1,32 +1,21 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 export type ThemeMode = "dark" | "light" | "system";
-export type Language = "es" | "en";
+export type Language = "es" | "en" | "fr" | "pt" | "de" | "it";
 export type FontSize = "sm" | "md" | "lg";
 
 export interface Settings {
-  // Apariencia
   theme: ThemeMode;
   fontSize: FontSize;
-  // Idioma
   language: Language;
-  // Notificaciones
   notifPush: boolean;
   notifEmail: boolean;
   notifFollows: boolean;
   notifComments: boolean;
   notifNewBooks: boolean;
-  // Privacidad
   publicProfile: boolean;
   showEmail: boolean;
   searchable: boolean;
-  // Reproducción
-  autoplay: boolean;
-  defaultSpeed: number; // 0.5 - 2.0
-  audioQuality: "low" | "medium" | "high";
-  // Datos
-  downloadOnlyWifi: boolean;
-  autoDownload: boolean;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -41,14 +30,9 @@ const DEFAULT_SETTINGS: Settings = {
   publicProfile: true,
   showEmail: false,
   searchable: true,
-  autoplay: false,
-  defaultSpeed: 1.0,
-  audioQuality: "high",
-  downloadOnlyWifi: true,
-  autoDownload: false,
 };
 
-const STORAGE_KEY = "audiverse_settings_v1";
+const STORAGE_KEY = "audiverse_settings_v2";
 
 interface SettingsContextType {
   settings: Settings;
@@ -78,7 +62,6 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
     } catch {}
 
-    // Apply theme
     const root = document.documentElement;
     const isLight =
       settings.theme === "light" ||
@@ -86,7 +69,6 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
         window.matchMedia("(prefers-color-scheme: light)").matches);
     root.classList.toggle("light", isLight);
 
-    // Apply font-size class for body
     document.body.dataset.fontSize = settings.fontSize;
   }, [settings]);
 

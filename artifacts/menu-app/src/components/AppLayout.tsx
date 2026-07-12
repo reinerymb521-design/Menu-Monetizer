@@ -123,7 +123,6 @@ export default function AppLayout() {
       <SettingsPanel
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        onGoToVIP={() => setActiveSection("vip")}
       />
     </div>
   );

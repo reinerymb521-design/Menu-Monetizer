@@ -5,46 +5,32 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   X, ChevronRight, ChevronLeft, User, Palette, Languages, Bell, Shield,
-  Headphones, Database, Lock, Crown, HelpCircle, Info, LogOut, Trash2,
-  Moon, Sun, Monitor, Check, KeyRound, AtSign, Eye, EyeOff,
+  Moon, Sun, Monitor, Check, AtSign, Eye, EyeOff, Trash2, Info,
 } from "lucide-react";
 
-type View =
-  | "main"
-  | "cuenta"
-  | "apariencia"
-  | "idioma"
-  | "notificaciones"
-  | "privacidad"
-  | "reproduccion"
-  | "datos"
-  | "seguridad"
-  | "premium"
-  | "ayuda"
-  | "acerca";
+type View = "main" | "personal" | "apariencia" | "idioma" | "notificaciones" | "privacidad" | "acerca";
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  onGoToVIP?: () => void;
 }
 
-export default function SettingsPanel({ open, onClose, onGoToVIP }: Props) {
+export default function SettingsPanel({ open, onClose }: Props) {
   const [view, setView] = useState<View>("main");
-  const { signOut, profile, isPremium } = useAuth();
+  const { signOut } = useAuth();
 
   if (!open) return null;
 
-  const close = () => {
-    setView("main");
-    onClose();
-  };
+  const close = () => { setView("main"); onClose(); };
 
-  const goToVIP = () => {
-    if (onGoToVIP) {
-      close();
-      onGoToVIP();
-    }
+  const titles: Record<View, string> = {
+    main: "Configuración",
+    personal: "Información personal",
+    apariencia: "Apariencia",
+    idioma: "Idioma",
+    notificaciones: "Notificaciones",
+    privacidad: "Privacidad",
+    acerca: "Acerca de AudiVerse",
   };
 
   return (
@@ -55,15 +41,11 @@ export default function SettingsPanel({ open, onClose, onGoToVIP }: Props) {
         <div className="glass-header sticky top-0 flex items-center justify-between px-4 py-3 z-10">
           <div className="flex items-center gap-2">
             {view !== "main" && (
-              <button
-                onClick={() => setView("main")}
-                className="p-1 rounded-full hover:bg-white/10"
-                aria-label="Volver"
-              >
+              <button onClick={() => setView("main")} className="p-1 rounded-full hover:bg-white/10" aria-label="Volver">
                 <ChevronLeft className="w-5 h-5" />
               </button>
             )}
-            <h2 className="text-base font-bold">{titleFor(view)}</h2>
+            <h2 className="text-base font-bold">{titles[view]}</h2>
           </div>
           <button onClick={close} className="p-1 rounded-full hover:bg-white/10" aria-label="Cerrar">
             <X className="w-5 h-5 text-muted-foreground" />
@@ -72,88 +54,41 @@ export default function SettingsPanel({ open, onClose, onGoToVIP }: Props) {
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {view === "main" && (
-            <MainList
-              isPremium={isPremium}
-              onSelect={setView}
-              onSignOut={async () => {
-                await signOut();
-                close();
-              }}
-              onGoToVIP={goToVIP}
-            />
-          )}
-          {view === "cuenta" && <CuentaSection />}
-          {view === "apariencia" && <AparienciaSection />}
-          {view === "idioma" && <IdiomaSection />}
-          {view === "notificaciones" && <NotificacionesSection />}
-          {view === "privacidad" && <PrivacidadSection />}
-          {view === "reproduccion" && <ReproduccionSection />}
-          {view === "datos" && <DatosSection />}
-          {view === "seguridad" && <SeguridadSection />}
-          {view === "premium" && <PremiumSection isPremium={isPremium} onGoToVIP={goToVIP} />}
-          {view === "ayuda" && <AyudaSection />}
-          {view === "acerca" && <AcercaSection />}
+          {view === "main"          && <MainList onSelect={setView} onSignOut={async () => { await signOut(); close(); }} />}
+          {view === "personal"      && <PersonalSection />}
+          {view === "apariencia"    && <AparienciaSection />}
+          {view === "idioma"        && <IdiomaSection />}
+          {view === "notificaciones"&& <NotificacionesSection />}
+          {view === "privacidad"    && <PrivacidadSection />}
+          {view === "acerca"        && <AcercaSection />}
         </div>
       </div>
     </div>
   );
 }
 
-function titleFor(v: View): string {
-  switch (v) {
-    case "main": return "Opciones";
-    case "cuenta": return "Cuenta";
-    case "apariencia": return "Apariencia";
-    case "idioma": return "Idioma";
-    case "notificaciones": return "Notificaciones";
-    case "privacidad": return "Privacidad";
-    case "reproduccion": return "Reproducción";
-    case "datos": return "Datos y almacenamiento";
-    case "seguridad": return "Seguridad";
-    case "premium": return "Premium";
-    case "ayuda": return "Ayuda y soporte";
-    case "acerca": return "Acerca de AudiVerse";
-  }
-}
-
-/* ----------------------- LIST ITEM ----------------------- */
-function MenuItem({
-  icon: Icon, label, hint, onClick, danger, badge,
-}: {
-  icon: any; label: string; hint?: string; onClick?: () => void; danger?: boolean; badge?: string;
+/* ── helpers ── */
+function MenuItem({ icon: Icon, label, hint, onClick, danger }: {
+  icon: any; label: string; hint?: string; onClick?: () => void; danger?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`w-full glass-panel px-4 py-3 flex items-center gap-3 hover:bg-white/10 transition text-left ${
-        danger ? "text-destructive" : "text-foreground"
-      }`}
+      className={`w-full glass-panel px-4 py-3 flex items-center gap-3 hover:bg-white/10 transition text-left ${danger ? "text-destructive" : "text-foreground"}`}
     >
-      <div
-        className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-          danger ? "bg-destructive/15" : "bg-white/10"
-        }`}
-      >
+      <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${danger ? "bg-destructive/15" : "bg-white/10"}`}>
         <Icon className={`w-4 h-4 ${danger ? "text-destructive" : "text-primary"}`} />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold leading-tight">{label}</p>
         {hint && <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{hint}</p>}
       </div>
-      {badge && (
-        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-400/20 text-yellow-400 font-medium">
-          {badge}
-        </span>
-      )}
       {!danger && <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />}
     </button>
   );
 }
 
-function Toggle({
-  checked, onChange,
-}: { checked: boolean; onChange: (v: boolean) => void }) {
+function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
       type="button"
@@ -162,18 +97,12 @@ function Toggle({
       onClick={() => onChange(!checked)}
       className={`relative w-10 h-5 rounded-full transition ${checked ? "bg-primary" : "bg-white/15"}`}
     >
-      <span
-        className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-          checked ? "translate-x-5" : ""
-        }`}
-      />
+      <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${checked ? "translate-x-5" : ""}`} />
     </button>
   );
 }
 
-function Row({
-  icon: Icon, label, hint, children,
-}: { icon: any; label: string; hint?: string; children: React.ReactNode }) {
+function Row({ icon: Icon, label, hint, children }: { icon: any; label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div className="glass-panel px-4 py-3 flex items-center gap-3">
       <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
@@ -188,86 +117,39 @@ function Row({
   );
 }
 
-/* ----------------------- MAIN LIST ----------------------- */
-function MainList({
-  isPremium, onSelect, onSignOut, onGoToVIP,
-}: { isPremium: boolean; onSelect: (v: View) => void; onSignOut: () => void; onGoToVIP: () => void }) {
-  const groups: { title: string; items: { v: View; icon: any; label: string; hint: string; onClick?: () => void; badge?: string }[] }[] = [
-    {
-      title: "Cuenta",
-      items: [
-        { v: "cuenta", icon: User, label: "Información personal", hint: "Nombre, foto, biografía" },
-        { v: "seguridad", icon: Lock, label: "Seguridad", hint: "Contraseña y sesión" },
-        {
-          v: "premium",
-          icon: Crown,
-          label: "Suscripción Premium",
-          hint: isPremium ? "Activa — Carnet Dorado" : "Desbloquea contenido VIP",
-          onClick: onGoToVIP,
-          badge: isPremium ? "VIP" : undefined,
-        },
-      ],
-    },
-    {
-      title: "Preferencias",
-      items: [
-        { v: "apariencia", icon: Palette, label: "Apariencia", hint: "Tema y tamaño de texto" },
-        { v: "idioma", icon: Languages, label: "Idioma", hint: "Español" },
-        { v: "notificaciones", icon: Bell, label: "Notificaciones", hint: "Push y correo" },
-        { v: "privacidad", icon: Shield, label: "Privacidad", hint: "Visibilidad de tu perfil" },
-        { v: "reproduccion", icon: Headphones, label: "Reproducción", hint: "Audio y velocidad" },
-        { v: "datos", icon: Database, label: "Datos y almacenamiento", hint: "Caché y descargas" },
-      ],
-    },
-    {
-      title: "Información",
-      items: [
-        { v: "ayuda", icon: HelpCircle, label: "Ayuda y soporte", hint: "Preguntas frecuentes" },
-        { v: "acerca", icon: Info, label: "Acerca de AudiVerse", hint: "Versión y términos" },
-      ],
-    },
+/* ── Main list ── */
+function MainList({ onSelect, onSignOut }: { onSelect: (v: View) => void; onSignOut: () => void }) {
+  const items: { v: View; icon: any; label: string; hint: string }[] = [
+    { v: "personal",       icon: User,      label: "Información personal",  hint: "Nombre, foto, correo" },
+    { v: "apariencia",     icon: Palette,   label: "Apariencia",            hint: "Tema, fondo y texto" },
+    { v: "notificaciones", icon: Bell,      label: "Notificaciones",        hint: "Push y correo" },
+    { v: "privacidad",     icon: Shield,    label: "Privacidad",            hint: "Visibilidad de tu perfil" },
+    { v: "idioma",         icon: Languages, label: "Idioma",                hint: "Selecciona tu idioma" },
+    { v: "acerca",         icon: Info,      label: "Acerca de AudiVerse",   hint: "Versión y términos" },
   ];
 
   return (
-    <div className="space-y-5">
-      {groups.map((g) => (
-        <div key={g.title} className="space-y-2">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold px-1">
-            {g.title}
-          </p>
-          <div className="space-y-2">
-            {g.items.map((it) => (
-              <MenuItem
-                key={it.v}
-                icon={it.icon}
-                label={it.label}
-                hint={it.hint}
-                badge={it.badge}
-                onClick={it.onClick ?? (() => onSelect(it.v))}
-              />
-            ))}
-          </div>
-        </div>
+    <div className="space-y-2">
+      {items.map((it) => (
+        <MenuItem key={it.v} icon={it.icon} label={it.label} hint={it.hint} onClick={() => onSelect(it.v)} />
       ))}
-
-      <div className="pt-2">
+      <div className="pt-4">
         <button
           onClick={onSignOut}
-          className="w-full glass-panel px-4 py-3 flex items-center justify-center gap-2 text-destructive hover:bg-destructive/10 transition text-sm font-semibold"
+          className="w-full glass-panel px-4 py-3 flex items-center justify-center gap-2 text-destructive hover:bg-destructive/10 transition text-sm font-semibold rounded-xl"
         >
-          <LogOut className="w-4 h-4" /> Cerrar sesión
+          <X className="w-4 h-4" /> Cerrar sesión
         </button>
       </div>
     </div>
   );
 }
 
-/* ----------------------- CUENTA ----------------------- */
-function CuentaSection() {
+/* ── Personal ── */
+function PersonalSection() {
   const { user, profile } = useAuth();
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
   const [saving, setSaving] = useState(false);
-  const { supabase: _sb } = { supabase };
 
   const save = async () => {
     if (!user) return;
@@ -290,7 +172,7 @@ function CuentaSection() {
         <span className="text-[10px] text-muted-foreground">Verificado</span>
       </Row>
       <div className="glass-panel p-4 space-y-3">
-        <label className="block text-xs font-semibold text-muted-foreground">URL de avatar</label>
+        <label className="block text-xs font-semibold text-muted-foreground">URL de foto de perfil</label>
         <input
           value={avatarUrl}
           onChange={(e) => setAvatarUrl(e.target.value)}
@@ -305,29 +187,22 @@ function CuentaSection() {
           {saving ? "Guardando..." : "Guardar cambios"}
         </button>
       </div>
-
-      <div className="pt-3">
-        <button
-          onClick={() =>
-            toast.info(
-              "Para eliminar tu cuenta, escríbenos a soporte@audiverse.app desde tu correo registrado.",
-            )
-          }
-          className="w-full glass-panel px-4 py-3 flex items-center gap-3 text-destructive hover:bg-destructive/10 transition text-sm font-semibold"
-        >
-          <Trash2 className="w-4 h-4" /> Eliminar mi cuenta
-        </button>
-      </div>
+      <button
+        onClick={() => toast.info("Para eliminar tu cuenta, escríbenos a soporte@audiverse.app")}
+        className="w-full glass-panel px-4 py-3 flex items-center gap-3 text-destructive hover:bg-destructive/10 transition text-sm font-semibold"
+      >
+        <Trash2 className="w-4 h-4" /> Eliminar mi cuenta
+      </button>
     </div>
   );
 }
 
-/* ----------------------- APARIENCIA ----------------------- */
+/* ── Apariencia ── */
 function AparienciaSection() {
   const { settings, updateSetting } = useSettings();
   const themes: { v: ThemeMode; label: string; icon: any }[] = [
-    { v: "dark", label: "Oscuro", icon: Moon },
-    { v: "light", label: "Claro", icon: Sun },
+    { v: "dark",   label: "Oscuro",  icon: Moon },
+    { v: "light",  label: "Claro",   icon: Sun },
     { v: "system", label: "Sistema", icon: Monitor },
   ];
   const sizes: { v: FontSize; label: string }[] = [
@@ -338,8 +213,8 @@ function AparienciaSection() {
 
   return (
     <div className="space-y-3">
-      <div className="glass-panel p-4 space-y-2">
-        <p className="text-xs font-semibold text-muted-foreground mb-2">Tema</p>
+      <div className="glass-panel p-4 space-y-3">
+        <p className="text-xs font-semibold text-muted-foreground">Tema</p>
         <div className="grid grid-cols-3 gap-2">
           {themes.map(({ v, label, icon: Icon }) => (
             <button
@@ -358,8 +233,8 @@ function AparienciaSection() {
         </div>
       </div>
 
-      <div className="glass-panel p-4 space-y-2">
-        <p className="text-xs font-semibold text-muted-foreground mb-2">Tamaño de texto</p>
+      <div className="glass-panel p-4 space-y-3">
+        <p className="text-xs font-semibold text-muted-foreground">Tamaño de texto</p>
         <div className="grid grid-cols-3 gap-2">
           {sizes.map(({ v, label }) => (
             <button
@@ -380,24 +255,29 @@ function AparienciaSection() {
   );
 }
 
-/* ----------------------- IDIOMA ----------------------- */
+/* ── Idioma ── */
 function IdiomaSection() {
   const { settings, updateSetting } = useSettings();
   const langs: { v: Language; label: string; flag: string }[] = [
-    { v: "es", label: "Español", flag: "🇪🇸" },
-    { v: "en", label: "English", flag: "🇬🇧" },
+    { v: "es", label: "Español",    flag: "🇪🇸" },
+    { v: "en", label: "English",    flag: "🇬🇧" },
+    { v: "fr", label: "Français",   flag: "🇫🇷" },
+    { v: "pt", label: "Português",  flag: "🇧🇷" },
+    { v: "de", label: "Deutsch",    flag: "🇩🇪" },
+    { v: "it", label: "Italiano",   flag: "🇮🇹" },
   ];
+  const names: Record<Language, string> = {
+    es: "Español", en: "English", fr: "Français", pt: "Português", de: "Deutsch", it: "Italiano",
+  };
+
   return (
     <div className="space-y-2">
       {langs.map(({ v, label, flag }) => (
         <button
           key={v}
-          onClick={() => {
-            updateSetting("language", v);
-            toast.success(v === "es" ? "Idioma: Español" : "Language: English");
-          }}
+          onClick={() => { updateSetting("language", v); toast.success(`Idioma: ${label}`); }}
           className={`w-full glass-panel px-4 py-3 flex items-center gap-3 transition ${
-            settings.language === v ? "border-primary" : "hover:bg-white/10"
+            settings.language === v ? "border border-primary" : "hover:bg-white/10"
           }`}
         >
           <span className="text-xl">{flag}</span>
@@ -405,311 +285,83 @@ function IdiomaSection() {
           {settings.language === v && <Check className="w-4 h-4 text-primary" />}
         </button>
       ))}
+      <p className="text-[10px] text-muted-foreground text-center pt-1">
+        Idioma actual: {names[settings.language]}
+      </p>
     </div>
   );
 }
 
-/* ----------------------- NOTIFICACIONES ----------------------- */
+/* ── Notificaciones ── */
 function NotificacionesSection() {
   const { settings, updateSetting } = useSettings();
   return (
     <div className="space-y-2">
-      <Row icon={Bell} label="Notificaciones push" hint="Avisos en tu dispositivo">
-        <Toggle checked={settings.notifPush} onChange={(v) => updateSetting("notifPush", v)} />
+      <Row icon={Bell}   label="Notificaciones push"    hint="Avisos en tu dispositivo">
+        <Toggle checked={settings.notifPush}     onChange={(v) => updateSetting("notifPush", v)} />
       </Row>
-      <Row icon={AtSign} label="Por correo" hint="Resumen y novedades">
-        <Toggle checked={settings.notifEmail} onChange={(v) => updateSetting("notifEmail", v)} />
+      <Row icon={AtSign} label="Por correo"             hint="Resumen y novedades">
+        <Toggle checked={settings.notifEmail}    onChange={(v) => updateSetting("notifEmail", v)} />
       </Row>
-      <Row icon={User} label="Nuevos seguidores">
-        <Toggle checked={settings.notifFollows} onChange={(v) => updateSetting("notifFollows", v)} />
+      <Row icon={User}   label="Nuevos seguidores">
+        <Toggle checked={settings.notifFollows}  onChange={(v) => updateSetting("notifFollows", v)} />
       </Row>
-      <Row icon={Bell} label="Comentarios y reseñas">
+      <Row icon={Bell}   label="Comentarios y reseñas">
         <Toggle checked={settings.notifComments} onChange={(v) => updateSetting("notifComments", v)} />
       </Row>
-      <Row icon={Bell} label="Nuevos libros y audiolibros">
+      <Row icon={Bell}   label="Nuevos libros">
         <Toggle checked={settings.notifNewBooks} onChange={(v) => updateSetting("notifNewBooks", v)} />
       </Row>
     </div>
   );
 }
 
-/* ----------------------- PRIVACIDAD ----------------------- */
+/* ── Privacidad ── */
 function PrivacidadSection() {
   const { settings, updateSetting } = useSettings();
   return (
     <div className="space-y-2">
-      <Row icon={Eye} label="Perfil público" hint="Cualquiera puede ver tu perfil">
+      <Row icon={Eye}    label="Perfil público"         hint="Cualquiera puede verte">
         <Toggle checked={settings.publicProfile} onChange={(v) => updateSetting("publicProfile", v)} />
       </Row>
       <Row icon={AtSign} label="Mostrar correo en perfil">
-        <Toggle checked={settings.showEmail} onChange={(v) => updateSetting("showEmail", v)} />
+        <Toggle checked={settings.showEmail}     onChange={(v) => updateSetting("showEmail", v)} />
       </Row>
       <Row icon={EyeOff} label="Aparecer en búsquedas">
-        <Toggle checked={settings.searchable} onChange={(v) => updateSetting("searchable", v)} />
+        <Toggle checked={settings.searchable}    onChange={(v) => updateSetting("searchable", v)} />
       </Row>
     </div>
   );
 }
 
-/* ----------------------- REPRODUCCIÓN ----------------------- */
-function ReproduccionSection() {
-  const { settings, updateSetting } = useSettings();
-  return (
-    <div className="space-y-2">
-      <Row icon={Headphones} label="Auto-reproducción" hint="Reproduce el siguiente capítulo">
-        <Toggle checked={settings.autoplay} onChange={(v) => updateSetting("autoplay", v)} />
-      </Row>
-
-      <div className="glass-panel p-4 space-y-2">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold">Velocidad por defecto</p>
-          <span className="text-sm text-primary font-bold">{settings.defaultSpeed.toFixed(2)}x</span>
-        </div>
-        <input
-          type="range"
-          min={0.5}
-          max={2}
-          step={0.05}
-          value={settings.defaultSpeed}
-          onChange={(e) => updateSetting("defaultSpeed", Number(e.target.value))}
-          className="w-full accent-primary"
-        />
-        <div className="flex justify-between text-[10px] text-muted-foreground">
-          <span>0.5x</span><span>1x</span><span>1.5x</span><span>2x</span>
-        </div>
-      </div>
-
-      <div className="glass-panel p-4 space-y-2">
-        <p className="text-sm font-semibold">Calidad de audio</p>
-        <div className="grid grid-cols-3 gap-2">
-          {(["low", "medium", "high"] as const).map((q) => (
-            <button
-              key={q}
-              onClick={() => updateSetting("audioQuality", q)}
-              className={`py-2 rounded-lg border text-xs font-medium transition ${
-                settings.audioQuality === q
-                  ? "border-primary bg-primary/15 text-primary"
-                  : "border-white/10 bg-white/5 text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {q === "low" ? "Baja" : q === "medium" ? "Media" : "Alta"}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ----------------------- DATOS ----------------------- */
-function DatosSection() {
-  const { settings, updateSetting } = useSettings();
-
-  const clearCache = () => {
-    try {
-      Object.keys(localStorage)
-        .filter((k) => k.startsWith("cache_"))
-        .forEach((k) => localStorage.removeItem(k));
-      toast.success("Caché eliminada");
-    } catch {
-      toast.error("No se pudo limpiar la caché");
-    }
-  };
-
-  return (
-    <div className="space-y-2">
-      <Row icon={Database} label="Descargar solo con Wi-Fi">
-        <Toggle checked={settings.downloadOnlyWifi} onChange={(v) => updateSetting("downloadOnlyWifi", v)} />
-      </Row>
-      <Row icon={Database} label="Descarga automática" hint="Libros guardados">
-        <Toggle checked={settings.autoDownload} onChange={(v) => updateSetting("autoDownload", v)} />
-      </Row>
-      <button
-        onClick={clearCache}
-        className="w-full glass-panel px-4 py-3 flex items-center gap-3 hover:bg-white/10 transition text-left"
-      >
-        <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
-          <Trash2 className="w-4 h-4 text-primary" />
-        </div>
-        <div className="flex-1">
-          <p className="text-sm font-semibold">Limpiar caché</p>
-          <p className="text-[11px] text-muted-foreground">Libera espacio en tu dispositivo</p>
-        </div>
-      </button>
-    </div>
-  );
-}
-
-/* ----------------------- SEGURIDAD ----------------------- */
-function SeguridadSection() {
-  const [pwd, setPwd] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [show, setShow] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  const change = async () => {
-    if (pwd.length < 6) {
-      toast.error("Mínimo 6 caracteres");
-      return;
-    }
-    if (pwd !== confirm) {
-      toast.error("Las contraseñas no coinciden");
-      return;
-    }
-    setSaving(true);
-    const { error } = await supabase.auth.updateUser({ password: pwd });
-    setSaving(false);
-    if (error) toast.error(error.message);
-    else {
-      toast.success("Contraseña actualizada");
-      setPwd("");
-      setConfirm("");
-    }
-  };
-
-  const signOutAll = async () => {
-    const { error } = await supabase.auth.signOut({ scope: "global" });
-    if (error) toast.error(error.message);
-    else toast.success("Cerraste sesión en todos los dispositivos");
-  };
-
-  return (
-    <div className="space-y-3">
-      <div className="glass-panel p-4 space-y-3">
-        <p className="text-sm font-semibold flex items-center gap-2">
-          <KeyRound className="w-4 h-4 text-primary" /> Cambiar contraseña
-        </p>
-        <div className="relative">
-          <input
-            type={show ? "text" : "password"}
-            value={pwd}
-            onChange={(e) => setPwd(e.target.value)}
-            placeholder="Nueva contraseña"
-            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-foreground focus:outline-none focus:border-primary"
-          />
-          <button
-            type="button"
-            onClick={() => setShow(!show)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-          >
-            {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </button>
-        </div>
-        <input
-          type={show ? "text" : "password"}
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-          placeholder="Confirmar contraseña"
-          className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-foreground focus:outline-none focus:border-primary"
-        />
-        <button
-          onClick={change}
-          disabled={saving}
-          className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
-        >
-          {saving ? "Actualizando..." : "Actualizar contraseña"}
-        </button>
-      </div>
-
-      <button
-        onClick={signOutAll}
-        className="w-full glass-panel px-4 py-3 flex items-center gap-3 text-destructive hover:bg-destructive/10 transition text-sm font-semibold"
-      >
-        <LogOut className="w-4 h-4" /> Cerrar sesión en todos los dispositivos
-      </button>
-    </div>
-  );
-}
-
-/* ----------------------- PREMIUM ----------------------- */
-function PremiumSection({ isPremium, onGoToVIP }: { isPremium: boolean; onGoToVIP: () => void }) {
-  return (
-    <div className="space-y-3">
-      <div className="glass-panel p-5 text-center space-y-3">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full gradient-vip">
-          <Crown className="w-7 h-7 text-black" />
-        </div>
-        <h3 className="text-lg font-bold">
-          {isPremium ? "¡Ya eres VIP!" : "Hazte VIP"}
-        </h3>
-        <p className="text-xs text-muted-foreground">
-          {isPremium
-            ? "Disfruta de la biblioteca completa, sin anuncios y con tu insignia dorada."
-            : "Desbloquea contenido exclusivo y apoya a AudiVerse."}
-        </p>
-        <button
-          onClick={onGoToVIP}
-          className="w-full py-2.5 rounded-lg btn-vip text-sm font-bold"
-        >
-          {isPremium ? "Ver mi suscripción" : "Ver planes"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/* ----------------------- AYUDA ----------------------- */
-function AyudaSection() {
-  const links = [
-    { label: "Preguntas frecuentes", hint: "Respuestas a las dudas comunes" },
-    { label: "Reportar un problema", hint: "Cuéntanos qué no funciona" },
-    { label: "Contactar soporte", hint: "soporte@audiverse.app" },
-    { label: "Sugerir una función", hint: "Tu opinión nos importa" },
-  ];
-  return (
-    <div className="space-y-2">
-      {links.map((l) => (
-        <button
-          key={l.label}
-          onClick={() => toast.info("Próximamente")}
-          className="w-full glass-panel px-4 py-3 flex items-center gap-3 hover:bg-white/10 transition text-left"
-        >
-          <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
-            <HelpCircle className="w-4 h-4 text-primary" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-semibold">{l.label}</p>
-            <p className="text-[11px] text-muted-foreground">{l.hint}</p>
-          </div>
-          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-        </button>
-      ))}
-    </div>
-  );
-}
-
-/* ----------------------- ACERCA ----------------------- */
+/* ── Acerca de ── */
 function AcercaSection() {
   return (
     <div className="space-y-3">
       <div className="glass-panel p-5 text-center space-y-2">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full gradient-vip">
-          <Headphones className="w-7 h-7 text-black" />
+        <div className="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto">
+          <span className="text-2xl">🎧</span>
         </div>
-        <h3 className="text-lg font-bold">AudiVerse</h3>
+        <h3 className="font-bold text-foreground text-lg">AudiVerse</h3>
         <p className="text-xs text-muted-foreground">Versión 1.0.0</p>
-        <p className="text-[11px] text-muted-foreground">
-          Tu universo infinito de lectura y audio.
-        </p>
+        <p className="text-xs text-muted-foreground">Tu universo infinito de lectura y audio</p>
       </div>
-      {[
-        "Términos de servicio",
-        "Política de privacidad",
-        "Licencias open source",
-        "Créditos",
-      ].map((label) => (
-        <button
-          key={label}
-          onClick={() => toast.info("Próximamente")}
-          className="w-full glass-panel px-4 py-3 flex items-center gap-3 hover:bg-white/10 transition text-left"
-        >
-          <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
-            <Info className="w-4 h-4 text-primary" />
-          </div>
-          <p className="flex-1 text-sm font-semibold">{label}</p>
-          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-        </button>
-      ))}
+      <div className="glass-panel p-4 space-y-2 text-xs text-muted-foreground">
+        <div className="flex justify-between">
+          <span>Términos de uso</span>
+          <ChevronRight className="w-4 h-4" />
+        </div>
+        <div className="h-px bg-white/5" />
+        <div className="flex justify-between">
+          <span>Política de privacidad</span>
+          <ChevronRight className="w-4 h-4" />
+        </div>
+        <div className="h-px bg-white/5" />
+        <div className="flex justify-between">
+          <span>Soporte</span>
+          <span>soporte@audiverse.app</span>
+        </div>
+      </div>
     </div>
   );
 }

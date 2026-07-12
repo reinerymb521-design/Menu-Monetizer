@@ -9,7 +9,7 @@ const GENEROS = [
   { label: "Todos",                      emoji: "🌎" },
   { label: "Drama y Romance",            emoji: "💖" },
   { label: "Ciencia Ficción y Aventura", emoji: "🚀" },
-  { label: "Terror y Suspenso",          emoji: "👻" },
+  { label: "Terror",                     emoji: "👻" },
   { label: "Misterio",                   emoji: "🔍" },
 ];
 
@@ -26,8 +26,7 @@ export default function HomePage({ searchQuery, filters }: Props) {
     queryFn: async () => {
       let q = supabase
         .from("libros")
-        .select("id, titulo, autor, url_portada, URL_PDF, genero, es_premium")
-        .order("created_at", { ascending: false });
+        .select("id, titulo, autor, url_portada, URL_PDF, genero, es_premium");
 
       const generoFilter = filters.genero || (activeGenre !== "Todos" ? activeGenre : "");
       if (generoFilter) q = q.ilike("genero", `%${generoFilter}%`);

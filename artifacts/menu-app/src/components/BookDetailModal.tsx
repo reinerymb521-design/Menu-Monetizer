@@ -99,11 +99,6 @@ export default function BookDetailModal({ book, onClose }: Props) {
           </button>
         </div>
 
-        {/* Descripción */}
-        {book.descripcion && (
-          <p className="text-sm text-muted-foreground leading-relaxed">{book.descripcion}</p>
-        )}
-
         {/* Acciones */}
         {!canAccess ? (
           <div className="w-full py-3 rounded-lg bg-yellow-400/10 border border-yellow-400/30 text-yellow-400 font-semibold text-sm flex items-center justify-center gap-2">

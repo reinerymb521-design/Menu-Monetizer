@@ -227,7 +227,6 @@ function LibroForm({ libro, onClose }: { libro: any; onClose: () => void }) {
     titulo:     libro?.titulo     ?? "",
     autor:      libro?.autor      ?? "",
     genero:     libro?.genero     ?? "Drama y Romance",
-    descripcion:libro?.descripcion?? "",
     portada_url:libro?.portada_url?? "",
     pdf_url:    libro?.pdf_url    ?? "",
     es_premium: libro?.es_premium ?? false,
@@ -289,13 +288,6 @@ function LibroForm({ libro, onClose }: { libro: any; onClose: () => void }) {
         onChange={(e) => setForm({ ...form, autor: e.target.value })}
         placeholder="Autor"
         className="w-full bg-black/30 border border-white/10 rounded p-2 text-sm outline-none focus:border-primary"
-      />
-      <textarea
-        value={form.descripcion}
-        onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
-        placeholder="Descripción"
-        rows={2}
-        className="w-full bg-black/30 border border-white/10 rounded p-2 text-sm outline-none focus:border-primary resize-none"
       />
       <select
         value={form.genero}

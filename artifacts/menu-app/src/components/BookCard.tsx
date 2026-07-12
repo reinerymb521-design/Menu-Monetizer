@@ -7,7 +7,6 @@ export interface Libro {
   titulo: string;
   autor: string;
   portada_url: string | null;
-  descripcion: string | null;
   genero: string;
   es_premium: boolean;
   pdf_url?: string | null;

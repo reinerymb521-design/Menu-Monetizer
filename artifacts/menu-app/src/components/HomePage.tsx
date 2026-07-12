@@ -26,7 +26,7 @@ export default function HomePage({ searchQuery, filters }: Props) {
     queryFn: async () => {
       let q = supabase
         .from("libros")
-        .select("id, titulo, autor, descripcion, portada_url, genero, es_premium, pdf_url")
+        .select("id, titulo, autor, portada_url, genero, es_premium, pdf_url")
         .order("created_at", { ascending: false });
 
       const generoFilter = filters.genero || (activeGenre !== "Todos" ? activeGenre : "");

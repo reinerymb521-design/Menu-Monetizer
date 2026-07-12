@@ -17,11 +17,11 @@ export default function HomePage({ searchQuery }: { searchQuery: string }) {
   const [supaError, setSupaError] = useState<string | null>(null);
 
   const { data: libros = [], isLoading } = useQuery({
-    queryKey: ["audiolibros"],
+    queryKey: ["libros"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("audiolibros")
-        .select("id, titulo, autor, genero, url_portada, es_premium, url_pdf");
+        .from("libros")
+        .select("*");
 
       if (error) {
         setSupaError(error.message);
@@ -49,11 +49,16 @@ export default function HomePage({ searchQuery }: { searchQuery: string }) {
   return (
     <section className="space-y-6 pb-20">
       {/* DEBUG TEMPORAL */}
-      <div style={{ background: "#111", padding: 8, borderRadius: 8, fontSize: 13 }}>
+      <div style={{ background: "#111", padding: 8, borderRadius: 8, fontSize: 12 }}>
         <p style={{ color: "lime", fontWeight: "bold" }}>libros.length = {libros.length}</p>
         {supaError && <p style={{ color: "red", marginTop: 4 }}>Error: {supaError}</p>}
         {!supaError && libros.length === 0 && !isLoading && (
-          <p style={{ color: "orange", marginTop: 4 }}>Sin error pero 0 resultados</p>
+          <p style={{ color: "orange", marginTop: 4 }}>Sin error, 0 resultados (revisar RLS)</p>
+        )}
+        {libros.length > 0 && (
+          <p style={{ color: "cyan", marginTop: 4 }}>
+            Columnas: {Object.keys((libros as any[])[0]).join(", ")}
+          </p>
         )}
       </div>
 

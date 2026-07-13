@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAudioPlayer } from "@/contexts/AudioPlayerContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { X, BookOpen, Play, Crown, Lock, Headphones, Loader2, FileText } from "lucide-react";
+import { X, BookOpen, Play, Crown, Lock, Headphones, Loader2, BookText } from "lucide-react";
 import type { Libro } from "./BookCard";
 import PDFViewerModal from "./PDFViewerModal";
 
@@ -46,18 +46,13 @@ export default function BookDetailModal({ libro, onClose }: Props) {
     onClose();
   };
 
-  const hasPdf = !!pdfUrl;
-  const hasContent = hasPdf || audiolibros.length > 0;
-
+  // Abre el PDF viewer directamente dentro de la app
   if (showPDF && pdfUrl) {
-    return (
-      <PDFViewerModal
-        url={pdfUrl}
-        titulo={libro.titulo}
-        onClose={() => setShowPDF(false)}
-      />
-    );
+    return <PDFViewerModal url={pdfUrl} titulo={libro.titulo} onClose={() => setShowPDF(false)} />;
   }
+
+  const hasPdf = !!pdfUrl;
+  const hasAudio = audiolibros.length > 0;
 
   return (
     <div
@@ -103,44 +98,60 @@ export default function BookDetailModal({ libro, onClose }: Props) {
           </div>
         ) : (
           <div className="space-y-3">
-            {/* Botón PDF — abre dentro de la app */}
-            {hasPdf && (
-              <button
-                onClick={() => setShowPDF(true)}
-                className="w-full py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 font-semibold text-sm flex items-center justify-center gap-2 hover:bg-red-500/20 transition"
-              >
-                <FileText className="w-4 h-4" /> Leer PDF
-              </button>
-            )}
 
-            {/* Capítulos de audio */}
-            {loadingAudio ? (
-              <div className="flex justify-center py-2">
-                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-              </div>
-            ) : audiolibros.length > 0 ? (
+            {/* Botones principales: Leer libro + Escuchar */}
+            <div className={`grid gap-3 ${hasPdf && hasAudio ? "grid-cols-2" : "grid-cols-1"}`}>
+              {/* Leer libro (PDF) */}
+              {hasPdf && (
+                <button
+                  onClick={() => setShowPDF(true)}
+                  className="py-3 rounded-xl bg-primary/15 border border-primary/30 text-primary font-semibold text-sm flex flex-col items-center gap-1.5 hover:bg-primary/25 transition"
+                >
+                  <BookText className="w-5 h-5" />
+                  <span>Leer libro</span>
+                </button>
+              )}
+
+              {/* Escuchar (audio — manos libres) */}
+              {loadingAudio ? (
+                <div className="py-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : hasAudio ? (
+                <button
+                  onClick={() => handlePlay(audiolibros[0] as any)}
+                  className="py-3 rounded-xl bg-green-500/15 border border-green-500/30 text-green-400 font-semibold text-sm flex flex-col items-center gap-1.5 hover:bg-green-500/25 transition"
+                >
+                  <Headphones className="w-5 h-5" />
+                  <span>Escuchar</span>
+                </button>
+              ) : null}
+            </div>
+
+            {/* Lista de capítulos si hay más de uno */}
+            {!loadingAudio && audiolibros.length > 1 && (
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
                   <Headphones className="w-3.5 h-3.5" />
-                  {audiolibros.length === 1 ? "Audiolibro" : `${audiolibros.length} capítulos`}
+                  {audiolibros.length} capítulos
                 </p>
                 {audiolibros.map((a: any) => (
                   <button
                     key={a.id}
                     onClick={() => handlePlay(a)}
-                    className="w-full py-2.5 px-3 rounded-lg bg-primary/10 border border-primary/20 text-foreground text-sm flex items-center gap-2 hover:bg-primary/20 transition text-left"
+                    className="w-full py-2.5 px-3 rounded-lg bg-white/5 border border-white/10 text-foreground text-sm flex items-center gap-2 hover:bg-white/10 transition text-left"
                   >
                     <Play className="w-4 h-4 text-primary shrink-0" />
                     <span className="line-clamp-1">{a.titulo || libro.titulo}</span>
                   </button>
                 ))}
               </div>
-            ) : null}
+            )}
 
             {/* Sin contenido */}
-            {!loadingAudio && !hasContent && (
+            {!loadingAudio && !hasPdf && !hasAudio && (
               <div className="glass-panel p-4 text-center text-muted-foreground text-sm">
-                Este libro aún no tiene audio ni PDF disponible.
+                Este libro aún no tiene audio ni texto disponible.
               </div>
             )}
           </div>

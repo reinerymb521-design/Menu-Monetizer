@@ -1,4 +1,5 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { useState } from "react";
 
 interface Props {
   url: string;
@@ -7,6 +8,11 @@ interface Props {
 }
 
 export default function PDFViewerModal({ url, titulo, onClose }: Props) {
+  const [loading, setLoading] = useState(true);
+
+  // Google Docs Viewer renderiza PDFs dentro del navegador sin pedir descarga
+  const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+
   return (
     <div className="fixed inset-0 z-[200] bg-background flex flex-col">
       {/* Header con botón de regreso */}
@@ -21,11 +27,20 @@ export default function PDFViewerModal({ url, titulo, onClose }: Props) {
         <h2 className="text-sm font-semibold truncate flex-1 text-foreground">{titulo}</h2>
       </div>
 
-      {/* Visor PDF */}
+      {/* Indicador de carga */}
+      {loading && (
+        <div className="absolute inset-0 top-14 flex flex-col items-center justify-center gap-3 text-muted-foreground z-10 bg-background">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-sm">Cargando libro...</p>
+        </div>
+      )}
+
+      {/* Visor PDF via Google Docs */}
       <iframe
-        src={url}
-        className="flex-1 w-full border-0 bg-white"
+        src={viewerUrl}
+        className="flex-1 w-full border-0"
         title={titulo}
+        onLoad={() => setLoading(false)}
         allow="fullscreen"
       />
     </div>

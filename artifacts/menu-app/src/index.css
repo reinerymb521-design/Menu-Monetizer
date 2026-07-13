@@ -127,6 +127,55 @@
   }
 }
 
+/* ── Tema claro ── */
+.light {
+  --color-background: hsl(210 20% 96%);
+  --color-foreground: hsl(222 47% 11%);
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(222 47% 11%);
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(222 47% 11%);
+  --color-muted: hsl(210 30% 90%);
+  --color-muted-foreground: hsl(215 25% 40%);
+  --color-border: hsl(0 0% 0% / 0.12);
+  --color-input: hsl(0 0% 0% / 0.12);
+  --color-secondary: hsl(210 30% 90%);
+  --color-secondary-foreground: hsl(222 47% 11%);
+}
+
+.light body {
+  background: hsl(210 20% 96%);
+  background: radial-gradient(circle at top left, hsl(210 30% 90%), hsl(210 20% 96%));
+  color: hsl(222 47% 11%);
+}
+
+.light .glass-panel {
+  background: hsl(0 0% 100% / 0.75);
+  border-color: hsl(0 0% 0% / 0.1);
+  box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.08);
+}
+
+.light .glass-header {
+  background: rgba(240, 244, 248, 0.9);
+  border-bottom-color: hsl(0 0% 0% / 0.1);
+}
+
+.light .content-card {
+  background: hsl(0 0% 100% / 0.8);
+  border-color: hsl(0 0% 0% / 0.1);
+  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.08);
+}
+
+.light .content-card:hover {
+  background: hsl(0 0% 100%);
+  border-color: hsl(217 91% 60%);
+}
+
+/* ── Tamaño de fuente ── */
+[data-font-size="sm"] { font-size: 13px; }
+[data-font-size="md"] { font-size: 15px; }
+[data-font-size="lg"] { font-size: 18px; }
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

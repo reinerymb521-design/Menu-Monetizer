@@ -5,10 +5,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   X, ChevronRight, ChevronLeft, User, Palette, Languages, Bell, Shield,
-  Moon, Sun, Monitor, Check, AtSign, Eye, EyeOff, Trash2, Info,
+  Moon, Sun, Monitor, Check, AtSign, Eye, EyeOff, Trash2, Info, FileText, Lock,
 } from "lucide-react";
 
-type View = "main" | "personal" | "apariencia" | "idioma" | "notificaciones" | "privacidad" | "acerca";
+type View =
+  | "main"
+  | "personal"
+  | "apariencia"
+  | "idioma"
+  | "notificaciones"
+  | "privacidad"
+  | "acerca"
+  | "terminos"
+  | "privacidadDoc";
 
 interface Props {
   open: boolean;
@@ -31,6 +40,8 @@ export default function SettingsPanel({ open, onClose }: Props) {
     notificaciones: "Notificaciones",
     privacidad: "Privacidad",
     acerca: "Acerca de AudiVerse",
+    terminos: "Términos de uso",
+    privacidadDoc: "Política de privacidad",
   };
 
   return (
@@ -41,7 +52,11 @@ export default function SettingsPanel({ open, onClose }: Props) {
         <div className="glass-header sticky top-0 flex items-center justify-between px-4 py-3 z-10">
           <div className="flex items-center gap-2">
             {view !== "main" && (
-              <button onClick={() => setView("main")} className="p-1 rounded-full hover:bg-white/10" aria-label="Volver">
+              <button
+                onClick={() => setView(view === "terminos" || view === "privacidadDoc" ? "acerca" : "main")}
+                className="p-1 rounded-full hover:bg-white/10"
+                aria-label="Volver"
+              >
                 <ChevronLeft className="w-5 h-5" />
               </button>
             )}
@@ -54,13 +69,15 @@ export default function SettingsPanel({ open, onClose }: Props) {
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {view === "main"          && <MainList onSelect={setView} onSignOut={async () => { await signOut(); close(); }} />}
-          {view === "personal"      && <PersonalSection />}
-          {view === "apariencia"    && <AparienciaSection />}
-          {view === "idioma"        && <IdiomaSection />}
-          {view === "notificaciones"&& <NotificacionesSection />}
-          {view === "privacidad"    && <PrivacidadSection />}
-          {view === "acerca"        && <AcercaSection />}
+          {view === "main"           && <MainList onSelect={setView} onSignOut={async () => { await signOut(); close(); }} />}
+          {view === "personal"       && <PersonalSection />}
+          {view === "apariencia"     && <AparienciaSection />}
+          {view === "idioma"         && <IdiomaSection />}
+          {view === "notificaciones" && <NotificacionesSection />}
+          {view === "privacidad"     && <PrivacidadSection />}
+          {view === "acerca"         && <AcercaSection onSelect={setView} />}
+          {view === "terminos"       && <TerminosSection />}
+          {view === "privacidadDoc"  && <PrivacidadDocSection />}
         </div>
       </div>
     </div>
@@ -125,9 +142,8 @@ function MainList({ onSelect, onSignOut }: { onSelect: (v: View) => void; onSign
     { v: "notificaciones", icon: Bell,      label: "Notificaciones",        hint: "Push y correo" },
     { v: "privacidad",     icon: Shield,    label: "Privacidad",            hint: "Visibilidad de tu perfil" },
     { v: "idioma",         icon: Languages, label: "Idioma",                hint: "Selecciona tu idioma" },
-    { v: "acerca",         icon: Info,      label: "Acerca de AudiVerse",   hint: "Versión y términos" },
+    { v: "acerca",         icon: Info,      label: "Acerca de AudiVerse",   hint: "Versión, términos y privacidad" },
   ];
-
   return (
     <div className="space-y-2">
       {items.map((it) => (
@@ -154,16 +170,10 @@ function PersonalSection() {
   const save = async () => {
     if (!user) return;
     setSaving(true);
-    const { error } = await supabase
-      .from("perfiles")
-      .update({ avatar_url: avatarUrl.trim() || null })
-      .eq("user_id", user.id);
+    const { error } = await supabase.from("perfiles").update({ avatar_url: avatarUrl.trim() || null }).eq("user_id", user.id);
     setSaving(false);
     if (error) toast.error(error.message);
-    else {
-      toast.success("Perfil actualizado");
-      window.dispatchEvent(new Event("audiverse:profile-refresh"));
-    }
+    else { toast.success("Perfil actualizado"); window.dispatchEvent(new Event("audiverse:profile-refresh")); }
   };
 
   return (
@@ -179,11 +189,7 @@ function PersonalSection() {
           className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
           placeholder="https://..."
         />
-        <button
-          onClick={save}
-          disabled={saving}
-          className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
-        >
+        <button onClick={save} disabled={saving} className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
           {saving ? "Guardando..." : "Guardar cambios"}
         </button>
       </div>
@@ -205,25 +211,25 @@ function AparienciaSection() {
     { v: "light",  label: "Claro",   icon: Sun },
     { v: "system", label: "Sistema", icon: Monitor },
   ];
-  const sizes: { v: FontSize; label: string }[] = [
-    { v: "sm", label: "Pequeño" },
-    { v: "md", label: "Mediano" },
-    { v: "lg", label: "Grande" },
+  const sizes: { v: FontSize; label: string; preview: string }[] = [
+    { v: "sm", label: "Pequeño", preview: "Aa" },
+    { v: "md", label: "Mediano", preview: "Aa" },
+    { v: "lg", label: "Grande",  preview: "Aa" },
   ];
 
   return (
     <div className="space-y-3">
       <div className="glass-panel p-4 space-y-3">
-        <p className="text-xs font-semibold text-muted-foreground">Tema</p>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Tema</p>
         <div className="grid grid-cols-3 gap-2">
           {themes.map(({ v, label, icon: Icon }) => (
             <button
               key={v}
               onClick={() => updateSetting("theme", v)}
-              className={`flex flex-col items-center gap-1 py-3 rounded-lg border transition ${
+              className={`flex flex-col items-center gap-1.5 py-4 rounded-xl border-2 transition ${
                 settings.theme === v
                   ? "border-primary bg-primary/15 text-primary"
-                  : "border-white/10 bg-white/5 text-muted-foreground hover:text-foreground"
+                  : "border-transparent bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10"
               }`}
             >
               <Icon className="w-5 h-5" />
@@ -234,19 +240,20 @@ function AparienciaSection() {
       </div>
 
       <div className="glass-panel p-4 space-y-3">
-        <p className="text-xs font-semibold text-muted-foreground">Tamaño de texto</p>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Tamaño de texto</p>
         <div className="grid grid-cols-3 gap-2">
-          {sizes.map(({ v, label }) => (
+          {sizes.map(({ v, label, preview }) => (
             <button
               key={v}
               onClick={() => updateSetting("fontSize", v)}
-              className={`py-2.5 rounded-lg border text-xs font-medium transition ${
+              className={`flex flex-col items-center gap-1 py-3 rounded-xl border-2 transition ${
                 settings.fontSize === v
                   ? "border-primary bg-primary/15 text-primary"
-                  : "border-white/10 bg-white/5 text-muted-foreground hover:text-foreground"
+                  : "border-transparent bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10"
               }`}
             >
-              {label}
+              <span className={`font-bold ${v === "sm" ? "text-base" : v === "md" ? "text-xl" : "text-2xl"}`}>{preview}</span>
+              <span className="text-xs">{label}</span>
             </button>
           ))}
         </div>
@@ -259,35 +266,26 @@ function AparienciaSection() {
 function IdiomaSection() {
   const { settings, updateSetting } = useSettings();
   const langs: { v: Language; label: string; flag: string }[] = [
-    { v: "es", label: "Español",    flag: "🇪🇸" },
-    { v: "en", label: "English",    flag: "🇬🇧" },
-    { v: "fr", label: "Français",   flag: "🇫🇷" },
-    { v: "pt", label: "Português",  flag: "🇧🇷" },
-    { v: "de", label: "Deutsch",    flag: "🇩🇪" },
-    { v: "it", label: "Italiano",   flag: "🇮🇹" },
+    { v: "es", label: "Español",   flag: "🇪🇸" },
+    { v: "en", label: "English",   flag: "🇬🇧" },
+    { v: "fr", label: "Français",  flag: "🇫🇷" },
+    { v: "pt", label: "Português", flag: "🇧🇷" },
+    { v: "de", label: "Deutsch",   flag: "🇩🇪" },
+    { v: "it", label: "Italiano",  flag: "🇮🇹" },
   ];
-  const names: Record<Language, string> = {
-    es: "Español", en: "English", fr: "Français", pt: "Português", de: "Deutsch", it: "Italiano",
-  };
-
   return (
     <div className="space-y-2">
       {langs.map(({ v, label, flag }) => (
         <button
           key={v}
           onClick={() => { updateSetting("language", v); toast.success(`Idioma: ${label}`); }}
-          className={`w-full glass-panel px-4 py-3 flex items-center gap-3 transition ${
-            settings.language === v ? "border border-primary" : "hover:bg-white/10"
-          }`}
+          className={`w-full glass-panel px-4 py-3 flex items-center gap-3 transition ${settings.language === v ? "border border-primary" : "hover:bg-white/10"}`}
         >
           <span className="text-xl">{flag}</span>
           <span className="flex-1 text-left text-sm font-semibold">{label}</span>
           {settings.language === v && <Check className="w-4 h-4 text-primary" />}
         </button>
       ))}
-      <p className="text-[10px] text-muted-foreground text-center pt-1">
-        Idioma actual: {names[settings.language]}
-      </p>
     </div>
   );
 }
@@ -297,21 +295,11 @@ function NotificacionesSection() {
   const { settings, updateSetting } = useSettings();
   return (
     <div className="space-y-2">
-      <Row icon={Bell}   label="Notificaciones push"    hint="Avisos en tu dispositivo">
-        <Toggle checked={settings.notifPush}     onChange={(v) => updateSetting("notifPush", v)} />
-      </Row>
-      <Row icon={AtSign} label="Por correo"             hint="Resumen y novedades">
-        <Toggle checked={settings.notifEmail}    onChange={(v) => updateSetting("notifEmail", v)} />
-      </Row>
-      <Row icon={User}   label="Nuevos seguidores">
-        <Toggle checked={settings.notifFollows}  onChange={(v) => updateSetting("notifFollows", v)} />
-      </Row>
-      <Row icon={Bell}   label="Comentarios y reseñas">
-        <Toggle checked={settings.notifComments} onChange={(v) => updateSetting("notifComments", v)} />
-      </Row>
-      <Row icon={Bell}   label="Nuevos libros">
-        <Toggle checked={settings.notifNewBooks} onChange={(v) => updateSetting("notifNewBooks", v)} />
-      </Row>
+      <Row icon={Bell}   label="Notificaciones push"  hint="Avisos en tu dispositivo"><Toggle checked={settings.notifPush}     onChange={(v) => updateSetting("notifPush", v)} /></Row>
+      <Row icon={AtSign} label="Por correo"           hint="Resumen y novedades">     <Toggle checked={settings.notifEmail}    onChange={(v) => updateSetting("notifEmail", v)} /></Row>
+      <Row icon={User}   label="Nuevos seguidores">                                   <Toggle checked={settings.notifFollows}  onChange={(v) => updateSetting("notifFollows", v)} /></Row>
+      <Row icon={Bell}   label="Comentarios y reseñas">                               <Toggle checked={settings.notifComments} onChange={(v) => updateSetting("notifComments", v)} /></Row>
+      <Row icon={Bell}   label="Nuevos libros">                                       <Toggle checked={settings.notifNewBooks} onChange={(v) => updateSetting("notifNewBooks", v)} /></Row>
     </div>
   );
 }
@@ -321,21 +309,15 @@ function PrivacidadSection() {
   const { settings, updateSetting } = useSettings();
   return (
     <div className="space-y-2">
-      <Row icon={Eye}    label="Perfil público"         hint="Cualquiera puede verte">
-        <Toggle checked={settings.publicProfile} onChange={(v) => updateSetting("publicProfile", v)} />
-      </Row>
-      <Row icon={AtSign} label="Mostrar correo en perfil">
-        <Toggle checked={settings.showEmail}     onChange={(v) => updateSetting("showEmail", v)} />
-      </Row>
-      <Row icon={EyeOff} label="Aparecer en búsquedas">
-        <Toggle checked={settings.searchable}    onChange={(v) => updateSetting("searchable", v)} />
-      </Row>
+      <Row icon={Eye}    label="Perfil público"        hint="Cualquiera puede verte"><Toggle checked={settings.publicProfile} onChange={(v) => updateSetting("publicProfile", v)} /></Row>
+      <Row icon={AtSign} label="Mostrar correo">                                     <Toggle checked={settings.showEmail}     onChange={(v) => updateSetting("showEmail", v)} /></Row>
+      <Row icon={EyeOff} label="Aparecer en búsquedas">                              <Toggle checked={settings.searchable}    onChange={(v) => updateSetting("searchable", v)} /></Row>
     </div>
   );
 }
 
 /* ── Acerca de ── */
-function AcercaSection() {
+function AcercaSection({ onSelect }: { onSelect: (v: View) => void }) {
   return (
     <div className="space-y-3">
       <div className="glass-panel p-5 text-center space-y-2">
@@ -346,22 +328,115 @@ function AcercaSection() {
         <p className="text-xs text-muted-foreground">Versión 1.0.0</p>
         <p className="text-xs text-muted-foreground">Tu universo infinito de lectura y audio</p>
       </div>
-      <div className="glass-panel p-4 space-y-2 text-xs text-muted-foreground">
-        <div className="flex justify-between">
-          <span>Términos de uso</span>
-          <ChevronRight className="w-4 h-4" />
-        </div>
+
+      <div className="glass-panel overflow-hidden">
+        <button
+          onClick={() => onSelect("terminos")}
+          className="w-full px-4 py-3.5 flex items-center gap-3 hover:bg-white/5 transition text-left"
+        >
+          <FileText className="w-4 h-4 text-primary shrink-0" />
+          <span className="flex-1 text-sm font-semibold">Términos de uso</span>
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        </button>
         <div className="h-px bg-white/5" />
-        <div className="flex justify-between">
-          <span>Política de privacidad</span>
-          <ChevronRight className="w-4 h-4" />
-        </div>
+        <button
+          onClick={() => onSelect("privacidadDoc")}
+          className="w-full px-4 py-3.5 flex items-center gap-3 hover:bg-white/5 transition text-left"
+        >
+          <Lock className="w-4 h-4 text-primary shrink-0" />
+          <span className="flex-1 text-sm font-semibold">Política de privacidad</span>
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        </button>
         <div className="h-px bg-white/5" />
-        <div className="flex justify-between">
-          <span>Soporte</span>
-          <span>soporte@audiverse.app</span>
+        <div className="px-4 py-3.5 flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">Soporte</span>
+          <span className="text-primary text-xs">soporte@audiverse.app</span>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ── Términos de uso ── */
+function TerminosSection() {
+  return (
+    <div className="space-y-4 text-sm text-foreground/80 leading-relaxed">
+      <div className="glass-panel p-4 space-y-3">
+        <h3 className="font-bold text-foreground">1. Aceptación de los términos</h3>
+        <p>Al acceder y utilizar AudiVerse, aceptas estar vinculado por estos Términos de Uso. Si no estás de acuerdo con alguna parte de estos términos, no podrás utilizar la plataforma.</p>
+      </div>
+      <div className="glass-panel p-4 space-y-3">
+        <h3 className="font-bold text-foreground">2. Uso de la plataforma</h3>
+        <p>AudiVerse es una plataforma de lectura y audiolibros para uso personal y no comercial. Queda prohibido:</p>
+        <ul className="list-disc pl-4 space-y-1 text-xs text-muted-foreground">
+          <li>Reproducir, distribuir o modificar el contenido sin autorización</li>
+          <li>Usar bots o sistemas automáticos para acceder al servicio</li>
+          <li>Compartir credenciales de acceso con terceros</li>
+          <li>Cargar contenido ilegal, ofensivo o que infrinja derechos de autor</li>
+        </ul>
+      </div>
+      <div className="glass-panel p-4 space-y-3">
+        <h3 className="font-bold text-foreground">3. Contenido y propiedad intelectual</h3>
+        <p>Todo el contenido disponible en AudiVerse está protegido por derechos de autor. Los libros y audiolibros son propiedad de sus respectivos autores y editoriales. AudiVerse actúa como plataforma distribuidora bajo las licencias correspondientes.</p>
+      </div>
+      <div className="glass-panel p-4 space-y-3">
+        <h3 className="font-bold text-foreground">4. Cuentas de usuario</h3>
+        <p>Eres responsable de mantener la confidencialidad de tu cuenta y contraseña. AudiVerse no se responsabiliza por el uso no autorizado de tu cuenta. Debes notificarnos inmediatamente ante cualquier brecha de seguridad.</p>
+      </div>
+      <div className="glass-panel p-4 space-y-3">
+        <h3 className="font-bold text-foreground">5. Suscripción Premium</h3>
+        <p>Los planes de suscripción Premium dan acceso a contenido exclusivo. Los pagos son procesados de forma segura y no son reembolsables salvo en casos previstos por la legislación aplicable.</p>
+      </div>
+      <div className="glass-panel p-4 space-y-3">
+        <h3 className="font-bold text-foreground">6. Modificaciones</h3>
+        <p>AudiVerse se reserva el derecho de modificar estos términos en cualquier momento. Las modificaciones entrarán en vigor al ser publicadas en la plataforma.</p>
+      </div>
+      <p className="text-xs text-muted-foreground text-center pb-4">Última actualización: julio 2026</p>
+    </div>
+  );
+}
+
+/* ── Política de privacidad ── */
+function PrivacidadDocSection() {
+  return (
+    <div className="space-y-4 text-sm text-foreground/80 leading-relaxed">
+      <div className="glass-panel p-4 space-y-3">
+        <h3 className="font-bold text-foreground">1. Datos que recopilamos</h3>
+        <p>AudiVerse recopila únicamente la información necesaria para proporcionar el servicio:</p>
+        <ul className="list-disc pl-4 space-y-1 text-xs text-muted-foreground">
+          <li>Nombre y correo electrónico (a través de Google OAuth)</li>
+          <li>Foto de perfil pública de Google</li>
+          <li>Historial de lectura y preferencias dentro de la app</li>
+          <li>Datos de suscripción (sin almacenar datos de pago)</li>
+        </ul>
+      </div>
+      <div className="glass-panel p-4 space-y-3">
+        <h3 className="font-bold text-foreground">2. Cómo usamos tus datos</h3>
+        <p>Utilizamos tu información para:</p>
+        <ul className="list-disc pl-4 space-y-1 text-xs text-muted-foreground">
+          <li>Autenticar tu acceso a la plataforma</li>
+          <li>Personalizar tu experiencia de lectura</li>
+          <li>Enviarte notificaciones sobre nuevos contenidos (si las tienes activadas)</li>
+          <li>Gestionar tu suscripción Premium</li>
+        </ul>
+      </div>
+      <div className="glass-panel p-4 space-y-3">
+        <h3 className="font-bold text-foreground">3. Almacenamiento y seguridad</h3>
+        <p>Tus datos se almacenan de forma segura en servidores de Supabase con cifrado en tránsito y en reposo. No vendemos ni compartimos tu información personal con terceros con fines comerciales.</p>
+      </div>
+      <div className="glass-panel p-4 space-y-3">
+        <h3 className="font-bold text-foreground">4. Cookies y almacenamiento local</h3>
+        <p>AudiVerse utiliza almacenamiento local del navegador (localStorage) para guardar tus preferencias de apariencia, idioma e historial de favoritos. No usamos cookies de seguimiento de terceros.</p>
+      </div>
+      <div className="glass-panel p-4 space-y-3">
+        <h3 className="font-bold text-foreground">5. Tus derechos</h3>
+        <p>Tienes derecho a acceder, corregir o eliminar tus datos en cualquier momento. Para ejercer estos derechos, contáctanos en <span className="text-primary">soporte@audiverse.app</span>.</p>
+      </div>
+      <div className="glass-panel p-4 space-y-3">
+        <h3 className="font-bold text-foreground">6. Menores de edad</h3>
+        <p>AudiVerse no está dirigido a menores de 13 años. No recopilamos conscientemente datos de menores. Si eres padre o tutor y crees que tu hijo ha proporcionado datos, contáctanos para eliminarlos.</p>
+      </div>
+      <p className="text-xs text-muted-foreground text-center pb-4">Última actualización: julio 2026</p>
     </div>
   );
 }

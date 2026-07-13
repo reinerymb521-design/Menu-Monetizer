@@ -11,6 +11,12 @@ import VoiceCommandButton from "./VoiceCommandButton";
 import ChaptersModal from "./ChaptersModal";
 
 const SAMPLE_AUDIO = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+const DEMO_TRACK = {
+  id: "demo",
+  titulo: "Demo — AudiVerse",
+  autor: "Muestra de audio",
+  portada_url: null as string | null,
+};
 const SPEEDS = [0.75, 1, 1.25, 1.5, 1.75, 2];
 
 const fmt = (s: number) => {
@@ -47,6 +53,12 @@ export default function AudioPlayer() {
   });
 
   useEffect(() => {
+    if (id === "demo") {
+      if (player.track?.id !== "demo") {
+        player.loadAndPlay(DEMO_TRACK, SAMPLE_AUDIO);
+      }
+      return;
+    }
     if (!libro) return;
     if (player.track?.id === libro.id) return;
     const audioSrc = libro.audio_url || SAMPLE_AUDIO;
@@ -54,7 +66,7 @@ export default function AudioPlayer() {
       { id: libro.id, titulo: libro.titulo, autor: libro.autor, portada_url: libro.portada_url },
       audioSrc,
     );
-  }, [libro?.id]);
+  }, [libro?.id, id]);
 
   const { isPlaying, currentTime, duration, speed, volume, muted } = player;
   const progressPct = duration ? (currentTime / duration) * 100 : 0;

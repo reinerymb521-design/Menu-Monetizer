@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { Home, Users, Crown, Bell, User, Settings as SettingsIcon, Shield } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Home, Users, Crown, Bell, User, Settings as SettingsIcon, Shield, Headphones } from "lucide-react";
 import HomePage from "./HomePage";
 import CommunitySection from "./CommunitySection";
 import UserProfileSection from "./UserProfileSection";
@@ -14,6 +15,7 @@ type Section = "inicio" | "comunidad" | "vip" | "perfil" | "admin";
 
 export default function AppLayout() {
   const { user, profile, isPremium, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<Section>("inicio");
   const [searchQuery, setSearchQuery] = useState("");
   const [notifOpen, setNotifOpen] = useState(false);
@@ -65,6 +67,14 @@ export default function AppLayout() {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <button
+            onClick={() => navigate("/listen/demo")}
+            className="p-2 rounded-full hover:bg-white/10 transition"
+            aria-label="Demo reproductor"
+            title="Probar reproductor"
+          >
+            <Headphones className="w-5 h-5 text-primary" />
+          </button>
           <button
             onClick={() => setNotifOpen(true)}
             className="relative p-2 rounded-full hover:bg-white/10 transition"

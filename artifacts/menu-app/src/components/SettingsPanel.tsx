@@ -203,14 +203,97 @@ function PersonalSection() {
   );
 }
 
+/* ── Glass Toggle ── */
+function GlassThemeSwitch() {
+  const { settings, updateSetting } = useSettings();
+  const isLight = settings.theme === "light";
+  const isSystem = settings.theme === "system";
+
+  const toggle = () => updateSetting("theme", isLight ? "dark" : "light");
+
+  return (
+    <div className="space-y-3">
+      {/* Glass pill */}
+      <div
+        role="switch"
+        aria-checked={isLight}
+        onClick={toggle}
+        className="relative w-full h-14 rounded-full cursor-pointer select-none overflow-hidden"
+        style={{
+          background: "linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.04) 100%)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          border: "1px solid rgba(255,255,255,0.18)",
+          boxShadow: "inset 0 2px 6px rgba(0,0,0,0.30), inset 0 -1px 2px rgba(255,255,255,0.06), 0 6px 24px rgba(0,0,0,0.25)",
+        }}
+      >
+        {/* Track labels — visible behind the handle */}
+        <span
+          className="absolute left-5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-semibold pointer-events-none"
+          style={{ color: "rgba(160,180,220,0.7)" }}
+        >
+          <Moon className="w-3.5 h-3.5" /> Oscuro
+        </span>
+        <span
+          className="absolute right-5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-semibold pointer-events-none"
+          style={{ color: "rgba(255,210,100,0.75)" }}
+        >
+          <Sun className="w-3.5 h-3.5" /> Claro
+        </span>
+
+        {/* Sliding handle */}
+        <div
+          className="absolute top-[5px] bottom-[5px] rounded-full flex items-center justify-center gap-2 transition-all duration-400 ease-[cubic-bezier(0.34,1.56,0.64,1)] pointer-events-none"
+          style={{
+            width: "calc(50% - 6px)",
+            left: isLight ? "calc(50% + 3px)" : "5px",
+            background: isLight
+              ? "linear-gradient(135deg, rgba(255,255,255,0.55) 0%, rgba(255,240,180,0.45) 100%)"
+              : "linear-gradient(135deg, rgba(80,100,180,0.45) 0%, rgba(30,40,100,0.55) 100%)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
+            border: isLight
+              ? "1px solid rgba(255,255,255,0.6)"
+              : "1px solid rgba(100,130,255,0.35)",
+            boxShadow: isLight
+              ? "0 4px 16px rgba(255,200,80,0.35), inset 0 1px 2px rgba(255,255,255,0.7)"
+              : "0 4px 16px rgba(40,60,160,0.4), inset 0 1px 2px rgba(255,255,255,0.15)",
+          }}
+        >
+          {isLight ? (
+            <>
+              <Sun className="w-4 h-4 shrink-0" style={{ color: "#f59e0b" }} />
+              <span className="text-xs font-bold" style={{ color: "#92400e" }}>Claro</span>
+            </>
+          ) : (
+            <>
+              <Moon className="w-4 h-4 shrink-0" style={{ color: "#a5b4fc" }} />
+              <span className="text-xs font-bold" style={{ color: "#c7d2fe" }}>Oscuro</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Sistema option */}
+      <button
+        onClick={() => updateSetting("theme", "system")}
+        className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition ${
+          isSystem
+            ? "bg-primary/20 text-primary border border-primary/40"
+            : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground border border-transparent"
+        }`}
+      >
+        <Monitor className="w-3.5 h-3.5" />
+        Usar tema del sistema
+        {isSystem && <Check className="w-3.5 h-3.5" />}
+      </button>
+    </div>
+  );
+}
+
 /* ── Apariencia ── */
 function AparienciaSection() {
   const { settings, updateSetting } = useSettings();
-  const themes: { v: ThemeMode; label: string; icon: any }[] = [
-    { v: "dark",   label: "Oscuro",  icon: Moon },
-    { v: "light",  label: "Claro",   icon: Sun },
-    { v: "system", label: "Sistema", icon: Monitor },
-  ];
   const sizes: { v: FontSize; label: string; preview: string }[] = [
     { v: "sm", label: "Pequeño", preview: "Aa" },
     { v: "md", label: "Mediano", preview: "Aa" },
@@ -219,24 +302,9 @@ function AparienciaSection() {
 
   return (
     <div className="space-y-3">
-      <div className="glass-panel p-4 space-y-3">
+      <div className="glass-panel p-4 space-y-4">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Tema</p>
-        <div className="grid grid-cols-3 gap-2">
-          {themes.map(({ v, label, icon: Icon }) => (
-            <button
-              key={v}
-              onClick={() => updateSetting("theme", v)}
-              className={`flex flex-col items-center gap-1.5 py-4 rounded-xl border-2 transition ${
-                settings.theme === v
-                  ? "border-primary bg-primary/15 text-primary"
-                  : "border-transparent bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10"
-              }`}
-            >
-              <Icon className="w-5 h-5" />
-              <span className="text-xs font-medium">{label}</span>
-            </button>
-          ))}
-        </div>
+        <GlassThemeSwitch />
       </div>
 
       <div className="glass-panel p-4 space-y-3">

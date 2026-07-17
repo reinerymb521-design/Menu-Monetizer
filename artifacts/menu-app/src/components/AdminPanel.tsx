@@ -359,7 +359,7 @@ function PdfsTab() {
     queryKey: ["libros_pdf"],
     queryFn: async () => {
       const { data } = await supabase
-        .from("libros_pdf")
+        .from("libros")
         .select("id, titulo, url_pdf, genero, created_at")
         .order("created_at", { ascending: false });
       return data ?? [];

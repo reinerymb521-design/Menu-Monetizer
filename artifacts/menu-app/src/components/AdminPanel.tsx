@@ -13,7 +13,10 @@ import {
   BarChart, Bar, CartesianGrid,
 } from "recharts";
 
-type Tab = "dashboard" | "libros" | "pdfs" | "usuarios";
+import { Copy, Key } from "lucide-react";
+import { SOCIO_CODES } from "@/lib/socioCodes";
+
+type Tab = "dashboard" | "libros" | "pdfs" | "usuarios" | "socios";
 
 export default function AdminPanel() {
   const { isAdmin, loading } = useAuth();
@@ -32,6 +35,7 @@ export default function AdminPanel() {
     ["libros", BookOpen, "Audiolibros"],
     ["pdfs", FileText, "PDFs"],
     ["usuarios", Users, "Usuarios"],
+    ["socios", Key, "Socios"],
   ];
 
   return (
@@ -54,6 +58,7 @@ export default function AdminPanel() {
       {tab === "libros"    && <LibrosTab />}
       {tab === "pdfs"      && <PdfsTab />}
       {tab === "usuarios"  && <UsuariosTab />}
+      {tab === "socios"    && <SociosTab />}
     </section>
   );
 }
@@ -404,14 +409,16 @@ function UsuariosTab() {
     queryFn: async () => {
       const { data } = await supabase
         .from("perfiles")
-        .select("user_id, email, es_premium, es_admin");
+        .select("id, user_id, correo_electronico, es_premium, es_admin");
       return data ?? [];
     },
   });
 
   const updatePremium = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: boolean }) =>
-      supabase.from("perfiles").update({ es_premium: status }).eq("user_id", id),
+    mutationFn: async ({ id, status }: { id: string; status: boolean }) => {
+      const res = await supabase.from("perfiles").update({ es_premium: status }).eq("id", id);
+      if (res.error) await supabase.from("perfiles").update({ es_premium: status }).eq("user_id", id);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["adminUsuarios"] });
       toast.success("Estado VIP actualizado");
@@ -425,22 +432,67 @@ function UsuariosTab() {
           No hay usuarios registrados aún.
         </div>
       )}
-      {usuarios.map((u: any) => (
-        <div key={u.user_id} className="glass-panel p-3 flex justify-between items-center gap-2">
-          <div className="min-w-0">
-            <p className="font-semibold text-sm truncate">{u.email}</p>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded ${u.es_premium ? "bg-yellow-500/20 text-yellow-400" : "bg-gray-500/20 text-gray-400"}`}>
-              {u.es_premium ? "VIP" : "Gratuito"}
-            </span>
+      {usuarios.map((u: any) => {
+        const uid = u.id ?? u.user_id;
+        const correo = u.correo_electronico ?? u.email ?? "—";
+        return (
+          <div key={uid} className="glass-panel p-3 flex justify-between items-center gap-2">
+            <div className="min-w-0">
+              <p className="font-semibold text-sm truncate">{correo}</p>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded ${u.es_premium ? "bg-yellow-500/20 text-yellow-400" : "bg-gray-500/20 text-gray-400"}`}>
+                {u.es_premium ? "VIP" : "Gratuito"}{u.es_admin ? " · Admin" : ""}
+              </span>
+            </div>
+            <button
+              onClick={() => updatePremium.mutate({ id: uid, status: !u.es_premium })}
+              className={`px-3 py-1.5 text-xs rounded font-medium transition ${u.es_premium ? "bg-red-500/20 text-red-400 hover:bg-red-500/30" : "bg-green-500/20 text-green-400 hover:bg-green-500/30"}`}
+            >
+              {u.es_premium ? "Quitar VIP" : "Dar VIP"}
+            </button>
           </div>
-          <button
-            onClick={() => updatePremium.mutate({ id: u.user_id, status: !u.es_premium })}
-            className={`px-3 py-1.5 text-xs rounded font-medium transition ${u.es_premium ? "bg-red-500/20 text-red-400 hover:bg-red-500/30" : "bg-green-500/20 text-green-400 hover:bg-green-500/30"}`}
-          >
-            {u.es_premium ? "Quitar VIP" : "Dar VIP"}
-          </button>
-        </div>
-      ))}
+        );
+      })}
+    </div>
+  );
+}
+
+/* ─── SOCIOS ─────────────────────────────────────────────────── */
+function SociosTab() {
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const copyCode = (code: string) => {
+    navigator.clipboard.writeText(code).catch(() => {});
+    setCopied(code);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="glass-panel p-4 space-y-2">
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Estos 5 códigos otorgan acceso <strong>Premium permanente y gratuito</strong>. Compártelos con socios de confianza. Cada código solo puede ser canjeado una vez por usuario.
+        </p>
+      </div>
+      <div className="space-y-2">
+        {Object.entries(SOCIO_CODES).map(([code, { nombre }]) => (
+          <div key={code} className="glass-panel p-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-muted-foreground">{nombre}</p>
+              <p className="font-mono font-bold text-sm text-yellow-400 tracking-wide">{code}</p>
+            </div>
+            <button
+              onClick={() => copyCode(code)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-white/10 text-xs hover:bg-white/5 transition"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              {copied === code ? "¡Copiado!" : "Copiar"}
+            </button>
+          </div>
+        ))}
+      </div>
+      <p className="text-[10px] text-muted-foreground text-center">
+        Los códigos se validan en la sección VIP de la app
+      </p>
     </div>
   );
 }

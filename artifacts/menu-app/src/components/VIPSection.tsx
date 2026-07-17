@@ -2,10 +2,12 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Crown, Sparkles, BookOpen, Shield, Star, Calendar } from "lucide-react";
+import { Crown, Sparkles, BookOpen, Shield, Star, Calendar, KeyRound, Loader2 } from "lucide-react";
 import PayPalSubscribeButton from "./PayPalSubscribeButton";
+import { isValidSocioCode } from "@/lib/socioCodes";
+import { toast } from "sonner";
 
-const MONTHLY_PRICE = "4.99";
+const MONTHLY_PRICE = "5.99";
 const YEARLY_PRICE = "39.99";
 const MONTHLY_PLAN_ID = import.meta.env.VITE_PAYPAL_PLAN_MONTHLY as string | undefined;
 const YEARLY_PLAN_ID = import.meta.env.VITE_PAYPAL_PLAN_YEARLY as string | undefined;
@@ -14,6 +16,35 @@ export default function VIPSection() {
   const { user, isPremium } = useAuth();
   const qc = useQueryClient();
   const [plan, setPlan] = useState<"monthly" | "yearly">("monthly");
+  const [codigo, setCodigo] = useState("");
+  const [canjeando, setCanjeando] = useState(false);
+
+  const canjearCodigo = async () => {
+    if (!user) { toast.error("Inicia sesión primero"); return; }
+    const upper = codigo.trim().toUpperCase();
+    if (!isValidSocioCode(upper)) {
+      toast.error("Código inválido. Verifica y vuelve a intentarlo.");
+      return;
+    }
+    setCanjeando(true);
+    /* Intenta actualizar por id primero, luego por correo_electronico */
+    const { error: e1 } = await supabase
+      .from("perfiles")
+      .update({ es_premium: true })
+      .eq("id", user.id);
+    if (e1) {
+      const { error: e2 } = await supabase
+        .from("perfiles")
+        .update({ es_premium: true })
+        .eq("correo_electronico", user.email ?? "");
+      if (e2) { toast.error("No se pudo activar. Contacta al administrador."); setCanjeando(false); return; }
+    }
+    toast.success("¡Bienvenido, Socio! Ahora tienes acceso Premium permanente 🎉");
+    setCodigo("");
+    setCanjeando(false);
+    qc.invalidateQueries({ queryKey: ["miSuscripcion"] });
+    window.dispatchEvent(new Event("audiverse:profile-refresh"));
+  };
 
   const { data: sub } = useQuery({
     queryKey: ["miSuscripcion"],
@@ -164,6 +195,33 @@ export default function VIPSection() {
           <p className="text-[10px] text-muted-foreground text-center">
             Pago seguro procesado por PayPal · Puedes cancelar en cualquier momento
           </p>
+        </div>
+      </div>
+
+      {/* ── Código de socio ── */}
+      <div className="glass-panel p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <KeyRound className="w-4 h-4 text-yellow-400" />
+          <p className="text-sm font-semibold">¿Tienes un código de socio?</p>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Los socios fundadores pueden ingresar su código para activar Premium de forma permanente y gratuita.
+        </p>
+        <div className="flex gap-2">
+          <input
+            value={codigo}
+            onChange={(e) => setCodigo(e.target.value)}
+            placeholder="AV-SOCIO-XXXXX"
+            className="flex-1 bg-black/30 border border-white/10 rounded px-3 py-2 text-sm font-mono outline-none focus:border-yellow-400/60 uppercase tracking-widest"
+            onKeyDown={(e) => e.key === "Enter" && canjearCodigo()}
+          />
+          <button
+            onClick={canjearCodigo}
+            disabled={canjeando || !codigo.trim()}
+            className="px-4 py-2 rounded bg-yellow-500/80 hover:bg-yellow-500 text-black text-sm font-bold disabled:opacity-40 transition flex items-center gap-1.5"
+          >
+            {canjeando ? <Loader2 className="w-4 h-4 animate-spin" /> : "Canjear"}
+          </button>
         </div>
       </div>
     </div>

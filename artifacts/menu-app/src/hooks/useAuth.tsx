@@ -42,71 +42,84 @@ function emailToName(email: string | null | undefined): string | null {
   return email.split("@")[0] ?? null;
 }
 
+async function rowToProfile(row: any): Promise<ProfileData> {
+  return {
+    display_name: emailToName(row.correo_electronico ?? row.email ?? null),
+    avatar_url: row.avatar_url ?? null,
+    es_premium: Boolean(row.es_premium),
+    es_admin: Boolean(row.es_admin),
+  };
+}
+
+/* Intenta buscar por `id` (clave primaria = auth.uid) primero,
+   luego por `user_id` como columna separada (schemas alternativos) */
 async function fetchPerfil(userId: string): Promise<ProfileData | null> {
-  const { data, error } = await supabase
+  /* Intento 1 — id = userId (esquema donde id es FK a auth.users) */
+  const { data: d1 } = await supabase
+    .from("perfiles")
+    .select("correo_electronico, avatar_url, es_premium, es_admin")
+    .eq("id", userId)
+    .maybeSingle();
+  if (d1) return rowToProfile(d1);
+
+  /* Intento 2 — user_id = userId (esquema con columna separada) */
+  const { data: d2 } = await supabase
     .from("perfiles")
     .select("correo_electronico, avatar_url, es_premium, es_admin")
     .eq("user_id", userId)
     .maybeSingle();
-  if (error) {
-    console.warn("[auth] perfiles query:", error.message);
-    return null;
-  }
-  if (!data) return null;
-  return {
-    display_name: emailToName((data as any).correo_electronico),
-    avatar_url: (data as any).avatar_url ?? null,
-    es_premium: Boolean((data as any).es_premium),
-    es_admin: Boolean((data as any).es_admin),
-  };
+  if (d2) return rowToProfile(d2);
+
+  return null;
 }
 
-async function fetchPerfilByEmail(email: string): Promise<{ row: any } | null> {
-  const { data, error } = await supabase
+async function fetchPerfilByEmail(email: string): Promise<any | null> {
+  const { data } = await supabase
     .from("perfiles")
-    .select("user_id, correo_electronico, avatar_url, es_premium, es_admin")
+    .select("id, user_id, correo_electronico, avatar_url, es_premium, es_admin")
     .eq("correo_electronico", email)
     .maybeSingle();
-  if (error || !data) return null;
-  return { row: data };
+  return data ?? null;
 }
 
 async function upsertPerfil(user: User): Promise<ProfileData | null> {
   const email = user.email ?? null;
 
-  /* Si la fila ya existe por email pero sin user_id, la vinculamos */
+  /* Si existe una fila con ese email, la usamos (puede que id = UUID de auth) */
   if (email) {
     const found = await fetchPerfilByEmail(email);
-    if (found && !found.row.user_id) {
-      await supabase
-        .from("perfiles")
-        .update({ user_id: user.id, avatar_url: user.user_metadata?.avatar_url ?? null })
-        .eq("correo_electronico", email);
-      return fetchPerfil(user.id);
-    }
-    if (found && found.row.user_id === user.id) {
-      /* Ya vinculada — devuelve directamente */
-      return {
-        display_name: emailToName(found.row.correo_electronico),
-        avatar_url: found.row.avatar_url ?? null,
-        es_premium: Boolean(found.row.es_premium),
-        es_admin: Boolean(found.row.es_admin),
-      };
+    if (found) {
+      return rowToProfile(found);
     }
   }
 
-  /* Crea fila nueva si no existe */
-  const { error } = await supabase.from("perfiles").upsert(
+  /* Crea fila nueva — intenta con `id` como PK primero */
+  const { error: e1 } = await supabase.from("perfiles").upsert(
     {
-      user_id: user.id,
+      id: user.id,
       correo_electronico: email,
       avatar_url: user.user_metadata?.avatar_url ?? null,
       es_premium: false,
       es_admin: false,
     },
-    { onConflict: "user_id", ignoreDuplicates: true },
+    { onConflict: "id", ignoreDuplicates: true },
   );
-  if (error) console.warn("[auth] perfiles upsert:", error.message);
+
+  if (e1) {
+    /* Fallback: esquema con user_id */
+    const { error: e2 } = await supabase.from("perfiles").upsert(
+      {
+        user_id: user.id,
+        correo_electronico: email,
+        avatar_url: user.user_metadata?.avatar_url ?? null,
+        es_premium: false,
+        es_admin: false,
+      },
+      { onConflict: "user_id", ignoreDuplicates: true },
+    );
+    if (e2) console.warn("[auth] perfiles upsert:", e2.message);
+  }
+
   return fetchPerfil(user.id);
 }
 

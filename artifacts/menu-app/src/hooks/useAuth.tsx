@@ -45,7 +45,7 @@ function emailToName(email: string | null | undefined): string | null {
 async function fetchPerfil(userId: string): Promise<ProfileData | null> {
   const { data, error } = await supabase
     .from("perfiles")
-    .select("email, avatar_url, es_premium, es_admin")
+    .select("correo_electronico, avatar_url, es_premium, es_admin")
     .eq("user_id", userId)
     .maybeSingle();
   if (error) {
@@ -54,18 +54,52 @@ async function fetchPerfil(userId: string): Promise<ProfileData | null> {
   }
   if (!data) return null;
   return {
-    display_name: emailToName(data.email),
-    avatar_url: data.avatar_url ?? null,
-    es_premium: Boolean(data.es_premium),
-    es_admin: Boolean(data.es_admin),
+    display_name: emailToName((data as any).correo_electronico),
+    avatar_url: (data as any).avatar_url ?? null,
+    es_premium: Boolean((data as any).es_premium),
+    es_admin: Boolean((data as any).es_admin),
   };
 }
 
+async function fetchPerfilByEmail(email: string): Promise<{ row: any } | null> {
+  const { data, error } = await supabase
+    .from("perfiles")
+    .select("user_id, correo_electronico, avatar_url, es_premium, es_admin")
+    .eq("correo_electronico", email)
+    .maybeSingle();
+  if (error || !data) return null;
+  return { row: data };
+}
+
 async function upsertPerfil(user: User): Promise<ProfileData | null> {
+  const email = user.email ?? null;
+
+  /* Si la fila ya existe por email pero sin user_id, la vinculamos */
+  if (email) {
+    const found = await fetchPerfilByEmail(email);
+    if (found && !found.row.user_id) {
+      await supabase
+        .from("perfiles")
+        .update({ user_id: user.id, avatar_url: user.user_metadata?.avatar_url ?? null })
+        .eq("correo_electronico", email);
+      return fetchPerfil(user.id);
+    }
+    if (found && found.row.user_id === user.id) {
+      /* Ya vinculada — devuelve directamente */
+      return {
+        display_name: emailToName(found.row.correo_electronico),
+        avatar_url: found.row.avatar_url ?? null,
+        es_premium: Boolean(found.row.es_premium),
+        es_admin: Boolean(found.row.es_admin),
+      };
+    }
+  }
+
+  /* Crea fila nueva si no existe */
   const { error } = await supabase.from("perfiles").upsert(
     {
       user_id: user.id,
-      email: user.email ?? null,
+      correo_electronico: email,
       avatar_url: user.user_metadata?.avatar_url ?? null,
       es_premium: false,
       es_admin: false,

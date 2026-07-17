@@ -31,4 +31,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
 
+/* Health check raíz — responde al proxy de Replit */
+app.get("/", (_req, res) => res.json({ status: "ok" }));
+
 export default app;

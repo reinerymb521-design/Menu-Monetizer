@@ -9,7 +9,9 @@ export default function LoginScreen() {
   const handleGoogle = async () => {
     setLoading(true);
     try {
-      const redirectTo = `${window.location.origin}${import.meta.env.BASE_URL || "/"}`;
+      /* Usa la URL exacta donde está la app ahora mismo */
+      const base = import.meta.env.BASE_URL ?? "/";
+      const redirectTo = `${window.location.origin}${base.endsWith("/") ? base : base + "/"}`;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {

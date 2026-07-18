@@ -51,41 +51,57 @@ function rowToProfile(row: any): ProfileData {
 const PERFIL_COLS = "id, correo_electronico, avatar_url, es_premium, es_admin";
 
 /**
- * Carga el perfil probando DOS estrategias:
- * 1. Por id = auth UUID  (funciona si se corrió el UPDATE de SQL)
- * 2. Por correo_electronico = user.email  (fallback cuando id no coincide)
+ * Carga el perfil.
+ * Usa arrays (no maybeSingle) para manejar filas duplicadas sin errores.
+ * Preferencia: fila con es_admin=true > fila con es_premium=true > primera fila.
  */
 async function loadPerfil(user: User): Promise<ProfileData | null> {
-  /* Estrategia 1 — id coincide con auth UUID */
-  const { data: byId, error: e1 } = await supabase
+  /* Reúne TODAS las filas que coincidan por id o por correo */
+  const results: any[] = [];
+
+  const { data: byId } = await supabase
     .from("perfiles")
     .select(PERFIL_COLS)
-    .eq("id", user.id)
-    .maybeSingle();
+    .eq("id", user.id);
+  if (byId) results.push(...byId);
 
-  if (byId) return rowToProfile(byId);
-  if (e1) console.warn("[auth] fetch by id:", e1.message);
-
-  /* Estrategia 2 — busca por correo (RLS deshabilitado) */
   if (user.email) {
-    const { data: byEmail, error: e2 } = await supabase
+    const { data: byEmail } = await supabase
       .from("perfiles")
       .select(PERFIL_COLS)
-      .eq("correo_electronico", user.email)
-      .maybeSingle();
-
-    if (byEmail) return rowToProfile(byEmail);
-    if (e2) console.warn("[auth] fetch by email:", e2.message);
+      .eq("correo_electronico", user.email);
+    if (byEmail) {
+      /* Agrega solo las filas que no estén ya en results (evita duplicados) */
+      for (const row of byEmail) {
+        if (!results.find((r) => r.id === row.id)) results.push(row);
+      }
+    }
   }
 
-  return null;
+  if (results.length === 0) return null;
+
+  /* Elige la mejor fila: admin > premium > primera */
+  const best =
+    results.find((r) => r.es_admin) ??
+    results.find((r) => r.es_premium) ??
+    results[0];
+
+  return rowToProfile(best);
 }
 
 /**
- * Crea una fila nueva si el usuario no tiene perfil todavía.
- * Sólo se llama si loadPerfil devolvió null.
+ * Crea perfil solo si no existe ninguna fila para este usuario.
  */
 async function createPerfil(user: User): Promise<ProfileData | null> {
+  /* Verifica primero: si ya hay filas por email, no crear nada nuevo */
+  if (user.email) {
+    const { data: existing } = await supabase
+      .from("perfiles")
+      .select("id")
+      .eq("correo_electronico", user.email);
+    if (existing && existing.length > 0) return loadPerfil(user);
+  }
+
   const { error } = await supabase.from("perfiles").upsert(
     {
       id:                  user.id,

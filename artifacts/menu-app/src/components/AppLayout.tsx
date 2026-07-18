@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { Home, Users, Crown, Bell, User, Settings as SettingsIcon, Shield, Headphones } from "lucide-react";
+import { Home, Users, Crown, Bell, User, Settings as SettingsIcon, Shield } from "lucide-react";
 import HomePage from "./HomePage";
 import CommunitySection from "./CommunitySection";
 import UserProfileSection from "./UserProfileSection";
@@ -68,14 +68,6 @@ export default function AppLayout() {
         </div>
         <div className="flex items-center gap-1">
           <button
-            onClick={() => navigate("/listen/demo")}
-            className="p-2 rounded-full hover:bg-white/10 transition"
-            aria-label="Demo reproductor"
-            title="Probar reproductor"
-          >
-            <Headphones className="w-5 h-5 text-primary" />
-          </button>
-          <button
             onClick={() => setNotifOpen(true)}
             className="relative p-2 rounded-full hover:bg-white/10 transition"
             aria-label="Notificaciones"
@@ -108,7 +100,7 @@ export default function AppLayout() {
       <main className="flex-1 px-4">
         {activeSection === "inicio" && <HomePage searchQuery={searchQuery} />}
         {activeSection === "comunidad" && <CommunitySection />}
-        {activeSection === "perfil" && <UserProfileSection />}
+        {activeSection === "perfil" && <UserProfileSection onGoToCatalog={() => setActiveSection("inicio")} />}
         {activeSection === "vip" && <VIPSection />}
         {activeSection === "admin" && <AdminPanel />}
       </main>

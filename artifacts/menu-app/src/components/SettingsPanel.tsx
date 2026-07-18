@@ -170,7 +170,8 @@ function PersonalSection() {
   const save = async () => {
     if (!user) return;
     setSaving(true);
-    const { error } = await supabase.from("perfiles").update({ avatar_url: avatarUrl.trim() || null }).eq("user_id", user.id);
+    const { error } = await supabase.from("perfiles").update({ avatar_url: avatarUrl.trim() || null })
+      .eq("correo_electronico", user.email ?? "");
     setSaving(false);
     if (error) toast.error(error.message);
     else { toast.success("Perfil actualizado"); window.dispatchEvent(new Event("audiverse:profile-refresh")); }
@@ -227,15 +228,15 @@ function GlassThemeSwitch() {
           boxShadow: "inset 0 2px 6px rgba(0,0,0,0.30), inset 0 -1px 2px rgba(255,255,255,0.06), 0 6px 24px rgba(0,0,0,0.25)",
         }}
       >
-        {/* Track labels — visible behind the handle */}
+        {/* Track labels — se ocultan cuando el handle las cubre */}
         <span
-          className="absolute left-5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-semibold pointer-events-none"
+          className={`absolute left-5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-semibold pointer-events-none transition-opacity duration-300 ${!isLight ? "opacity-0" : "opacity-100"}`}
           style={{ color: "rgba(160,180,220,0.7)" }}
         >
           <Moon className="w-3.5 h-3.5" /> Oscuro
         </span>
         <span
-          className="absolute right-5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-semibold pointer-events-none"
+          className={`absolute right-5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-semibold pointer-events-none transition-opacity duration-300 ${isLight ? "opacity-0" : "opacity-100"}`}
           style={{ color: "rgba(255,210,100,0.75)" }}
         >
           <Sun className="w-3.5 h-3.5" /> Claro

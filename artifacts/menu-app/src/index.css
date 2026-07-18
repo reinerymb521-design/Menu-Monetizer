@@ -172,9 +172,9 @@
 }
 
 /* ── Tamaño de fuente ── */
-[data-font-size="sm"] { font-size: 13px; }
-[data-font-size="md"] { font-size: 15px; }
-[data-font-size="lg"] { font-size: 18px; }
+html[data-font-size="sm"] { font-size: 13px; }
+html[data-font-size="md"] { font-size: 15px; }
+html[data-font-size="lg"] { font-size: 18px; }
 
 @keyframes spin {
   to { transform: rotate(360deg); }

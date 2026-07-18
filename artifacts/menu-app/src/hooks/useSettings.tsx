@@ -69,7 +69,7 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
         window.matchMedia("(prefers-color-scheme: light)").matches);
     root.classList.toggle("light", isLight);
 
-    document.body.dataset.fontSize = settings.fontSize;
+    document.documentElement.dataset.fontSize = settings.fontSize;
   }, [settings]);
 
   const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => {

@@ -12,6 +12,14 @@ const YEARLY_PRICE = "39.99";
 const MONTHLY_PLAN_ID = import.meta.env.VITE_PAYPAL_PLAN_MONTHLY as string | undefined;
 const YEARLY_PLAN_ID = import.meta.env.VITE_PAYPAL_PLAN_YEARLY as string | undefined;
 
+/* Gradiente dorado oscuro de fondo de tarjeta */
+const cardStyle: React.CSSProperties = {
+  background: "linear-gradient(160deg,#120d00 0%,#1e1600 50%,#2e2000 100%)",
+  border: "1px solid rgba(212,168,50,0.3)",
+  borderRadius: "1.25rem",
+  boxShadow: "0 8px 40px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,220,80,0.08)",
+};
+
 export default function VIPSection() {
   const { user, isPremium } = useAuth();
   const qc = useQueryClient();
@@ -27,7 +35,6 @@ export default function VIPSection() {
       return;
     }
     setCanjeando(true);
-    /* Intenta actualizar por id primero, luego por correo_electronico */
     const { error: e1 } = await supabase
       .from("perfiles")
       .update({ es_premium: true })
@@ -65,62 +72,58 @@ export default function VIPSection() {
     window.dispatchEvent(new Event("audiverse:profile-refresh"));
   };
 
+  /* ── Usuario ya premium ── */
   if (isPremium) {
     return (
-      <div className="space-y-4">
-        <div className="glass-panel p-6 text-center space-y-3 premium-glow">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full gradient-vip">
-            <Crown className="w-7 h-7 text-black" />
+      <div className="space-y-4 pb-6">
+        <div className="p-6 text-center space-y-4" style={cardStyle}>
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
+            style={{ background: "linear-gradient(135deg,#f59e0b,#d97706)", boxShadow: "0 4px 20px rgba(245,158,11,0.5)" }}
+          >
+            <Crown className="w-8 h-8 text-black" />
           </div>
-          <h2 className="text-xl font-bold">¡Eres VIP! 🎉</h2>
-          <p className="text-sm text-muted-foreground">
-            Disfruta de todos los beneficios premium.
-          </p>
+          <h2 className="text-xl font-bold text-yellow-400">¡Eres VIP! 🎉</h2>
+          <p className="text-sm text-white/60">Disfruta de todos los beneficios premium.</p>
 
           {sub && (
-            <div className="glass-panel p-3 text-left space-y-1.5">
+            <div className="rounded-xl p-3 text-left space-y-1.5" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,220,80,0.15)" }}>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Estado</span>
+                <span className="text-white/50">Estado</span>
                 <span className="font-semibold text-green-400 capitalize">{sub.estado}</span>
               </div>
               {sub.fecha_inicio && (
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <Calendar className="w-3 h-3" /> Inicio
-                  </span>
-                  <span className="font-semibold">
-                    {new Date(sub.fecha_inicio).toLocaleDateString("es", {
-                      day: "numeric", month: "short", year: "numeric",
-                    })}
+                  <span className="text-white/50 flex items-center gap-1"><Calendar className="w-3 h-3" /> Inicio</span>
+                  <span className="font-semibold text-white/80">
+                    {new Date(sub.fecha_inicio).toLocaleDateString("es", { day: "numeric", month: "short", year: "numeric" })}
                   </span>
                 </div>
               )}
               {sub.fecha_fin && (
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <Calendar className="w-3 h-3" /> Expira
-                  </span>
-                  <span className="font-semibold">
-                    {new Date(sub.fecha_fin).toLocaleDateString("es", {
-                      day: "numeric", month: "short", year: "numeric",
-                    })}
+                  <span className="text-white/50 flex items-center gap-1"><Calendar className="w-3 h-3" /> Expira</span>
+                  <span className="font-semibold text-white/80">
+                    {new Date(sub.fecha_fin).toLocaleDateString("es", { day: "numeric", month: "short", year: "numeric" })}
                   </span>
                 </div>
               )}
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3 pt-2">
+          <div className="grid grid-cols-2 gap-3 pt-1">
             {[
-              { icon: BookOpen, label: "Biblioteca completa", desc: "Acceso a libros exclusivos" },
+              { icon: BookOpen, label: "Biblioteca", desc: "Libros exclusivos" },
               { icon: Shield, label: "Sin anuncios", desc: "Experiencia limpia" },
-              { icon: Star, label: "Insignia dorada", desc: "Destaca en la comunidad" },
-              { icon: Sparkles, label: "Perfil destacado", desc: "Apareces primero" },
+              { icon: Star, label: "Insignia dorada", desc: "Destaca" },
+              { icon: Sparkles, label: "Perfil VIP", desc: "Apareces primero" },
             ].map((b) => (
-              <div key={b.label} className="glass-panel p-3 space-y-1">
-                <b.icon className="w-5 h-5 mx-auto text-yellow-400" />
-                <p className="text-[10px] font-semibold">{b.label}</p>
-                <p className="text-[9px] text-muted-foreground">{b.desc}</p>
+              <div key={b.label} className="rounded-xl p-3 space-y-1 text-center" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,220,80,0.12)" }}>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center mx-auto" style={{ background: "rgba(245,158,11,0.2)" }}>
+                  <b.icon className="w-4 h-4 text-yellow-400" />
+                </div>
+                <p className="text-[10px] font-semibold text-white/80">{b.label}</p>
+                <p className="text-[9px] text-white/40">{b.desc}</p>
               </div>
             ))}
           </div>
@@ -130,81 +133,99 @@ export default function VIPSection() {
   }
 
   const planId = plan === "monthly" ? MONTHLY_PLAN_ID : YEARLY_PLAN_ID;
-  const price = plan === "monthly" ? MONTHLY_PRICE : YEARLY_PRICE;
+  const price  = plan === "monthly" ? MONTHLY_PRICE : YEARLY_PRICE;
 
   return (
-    <div className="space-y-4">
-      <div className="glass-panel p-6 space-y-4">
+    <div className="space-y-4 pb-6">
+      {/* ── Tarjeta principal ── */}
+      <div className="p-6 space-y-5" style={cardStyle}>
+
+        {/* Crown */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full gradient-vip">
-            <Crown className="w-8 h-8 text-black" />
+          <div
+            className="w-20 h-20 rounded-full flex items-center justify-center mx-auto"
+            style={{ background: "linear-gradient(135deg,#f59e0b 0%,#b45309 100%)", boxShadow: "0 6px 30px rgba(245,158,11,0.5)" }}
+          >
+            <Crown className="w-10 h-10 text-black" />
           </div>
-          <h2 className="text-xl font-bold">Carnet Dorado</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="text-2xl font-black text-white">Carnet Dorado</h2>
+          <p className="text-sm text-white/55">
             Desbloquea la experiencia completa de AudiVerse
           </p>
         </div>
 
-        <div className="space-y-3 text-left">
+        {/* Beneficios */}
+        <div className="space-y-3">
           {[
             { icon: BookOpen, text: "Acceso a toda la biblioteca premium" },
-            { icon: Shield, text: "Sin anuncios ni interrupciones" },
-            { icon: Star, text: "Insignia dorada en tu perfil" },
+            { icon: Shield,   text: "Sin anuncios ni interrupciones" },
+            { icon: Star,     text: "Insignia dorada en tu perfil" },
             { icon: Sparkles, text: "Apareces destacado en la comunidad" },
           ].map((b, i) => (
             <div key={i} className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-yellow-400/10 flex items-center justify-center shrink-0">
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: "linear-gradient(135deg,rgba(245,158,11,0.35),rgba(180,83,9,0.25))", border: "1px solid rgba(245,158,11,0.4)" }}
+              >
                 <b.icon className="w-4 h-4 text-yellow-400" />
               </div>
-              <p className="text-sm">{b.text}</p>
+              <p className="text-sm text-white/85">{b.text}</p>
             </div>
           ))}
         </div>
 
-        {/* Plan switcher */}
-        <div className="grid grid-cols-2 gap-2 pt-1">
+        {/* Plan selector */}
+        <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => setPlan("monthly")}
-            className={`py-3 px-3 rounded-lg border-2 text-left transition ${
-              plan === "monthly" ? "border-yellow-400 bg-yellow-400/10" : "border-white/10 bg-white/5 hover:border-yellow-400/30"
-            }`}
+            className="py-3 px-3 rounded-xl text-left transition"
+            style={{
+              border: plan === "monthly" ? "2px solid #f59e0b" : "2px solid rgba(255,255,255,0.1)",
+              background: plan === "monthly" ? "rgba(245,158,11,0.12)" : "rgba(255,255,255,0.04)",
+            }}
           >
-            <p className="text-[10px] text-muted-foreground uppercase">Mensual</p>
-            <p className="text-base font-bold">${MONTHLY_PRICE}</p>
-            <p className="text-[10px] text-muted-foreground">por mes</p>
+            <p className="text-[10px] text-white/50 uppercase font-semibold">Mensual</p>
+            <p className="text-lg font-black text-white">${MONTHLY_PRICE}</p>
+            <p className="text-[10px] text-white/40">por mes</p>
           </button>
           <button
             onClick={() => setPlan("yearly")}
-            className={`py-3 px-3 rounded-lg border-2 text-left transition relative ${
-              plan === "yearly" ? "border-yellow-400 bg-yellow-400/10" : "border-white/10 bg-white/5 hover:border-yellow-400/30"
-            }`}
+            className="py-3 px-3 rounded-xl text-left transition relative"
+            style={{
+              border: plan === "yearly" ? "2px solid #f59e0b" : "2px solid rgba(255,255,255,0.1)",
+              background: plan === "yearly" ? "rgba(245,158,11,0.12)" : "rgba(255,255,255,0.04)",
+            }}
           >
-            <span className="absolute -top-2 right-2 text-[9px] bg-yellow-400 text-black font-bold px-1.5 py-0.5 rounded-full">-33%</span>
-            <p className="text-[10px] text-muted-foreground uppercase">Anual</p>
-            <p className="text-base font-bold">${YEARLY_PRICE}</p>
-            <p className="text-[10px] text-muted-foreground">por año</p>
+            <span className="absolute -top-2 right-2 text-[9px] font-black px-1.5 py-0.5 rounded-full" style={{ background: "#f59e0b", color: "#000" }}>-33%</span>
+            <p className="text-[10px] text-white/50 uppercase font-semibold">Anual</p>
+            <p className="text-lg font-black text-white">${YEARLY_PRICE}</p>
+            <p className="text-[10px] text-white/40">por año</p>
           </button>
         </div>
 
-        <div className="pt-2 space-y-2">
+        {/* PayPal */}
+        <div className="space-y-2">
           {user ? (
             <PayPalSubscribeButton key={plan} planId={planId} plan={plan} price={price} onSuccess={refreshAll} />
           ) : (
-            <p className="text-center text-xs text-muted-foreground py-3">Inicia sesión para suscribirte</p>
+            <p className="text-center text-xs text-white/40 py-3">Inicia sesión para suscribirte</p>
           )}
-          <p className="text-[10px] text-muted-foreground text-center">
+          <p className="text-[10px] text-white/30 text-center">
             Pago seguro procesado por PayPal · Puedes cancelar en cualquier momento
           </p>
         </div>
       </div>
 
       {/* ── Código de socio ── */}
-      <div className="glass-panel p-4 space-y-3">
+      <div
+        className="p-4 space-y-3 rounded-2xl"
+        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,220,80,0.15)" }}
+      >
         <div className="flex items-center gap-2">
           <KeyRound className="w-4 h-4 text-yellow-400" />
-          <p className="text-sm font-semibold">¿Tienes un código de socio?</p>
+          <p className="text-sm font-semibold text-white/90">¿Tienes un código de socio?</p>
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-white/45">
           Los socios fundadores pueden ingresar su código para activar Premium de forma permanente y gratuita.
         </p>
         <div className="flex gap-2">
@@ -212,13 +233,15 @@ export default function VIPSection() {
             value={codigo}
             onChange={(e) => setCodigo(e.target.value)}
             placeholder="AV-SOCIO-XXXXX"
-            className="flex-1 bg-black/30 border border-white/10 rounded px-3 py-2 text-sm font-mono outline-none focus:border-yellow-400/60 uppercase tracking-widest"
+            className="flex-1 rounded-lg px-3 py-2 text-sm font-mono outline-none uppercase tracking-widest"
+            style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff" }}
             onKeyDown={(e) => e.key === "Enter" && canjearCodigo()}
           />
           <button
             onClick={canjearCodigo}
             disabled={canjeando || !codigo.trim()}
-            className="px-4 py-2 rounded bg-yellow-500/80 hover:bg-yellow-500 text-black text-sm font-bold disabled:opacity-40 transition flex items-center gap-1.5"
+            className="px-4 py-2 rounded-lg text-black text-sm font-black disabled:opacity-40 transition flex items-center gap-1.5"
+            style={{ background: "linear-gradient(135deg,#f59e0b,#d97706)" }}
           >
             {canjeando ? <Loader2 className="w-4 h-4 animate-spin" /> : "Canjear"}
           </button>

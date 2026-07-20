@@ -30,10 +30,11 @@ export default function AppLayout() {
     user?.email?.split("@")[0] ||
     "Usuario";
 
-  const avatarUrl =
-    profile?.avatar_url ||
-    user?.user_metadata?.avatar_url ||
-    `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName)}`;
+  const avatarUrl = 
+  user?.user_metadata?.avatar_url || 
+  profile?.avatar_url || 
+  `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName)}`;
+  
 
   const navItems: { id: Section; icon: typeof Home; label: string; show?: boolean }[] = [
     { id: "inicio", icon: Home, label: "Inicio" },

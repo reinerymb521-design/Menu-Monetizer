@@ -18,10 +18,20 @@ export interface Settings {
   searchable: boolean;
 }
 
+const getBrowserLanguage = (): Language => {
+  const lang = typeof window !== "undefined" ? (navigator.language || navigator.languages?.[0] || "es") : "es";
+  if (lang.startsWith("fr")) return "fr";
+  if (lang.startsWith("pt")) return "pt";
+  if (lang.startsWith("de")) return "de";
+  if (lang.startsWith("it")) return "it";
+  if (lang.startsWith("en")) return "en";
+  return "es";
+};
+
 const DEFAULT_SETTINGS: Settings = {
   theme: "dark",
   fontSize: "md",
-  language: "es",
+  language: getBrowserLanguage(),
   notifPush: true,
   notifEmail: true,
   notifFollows: true,

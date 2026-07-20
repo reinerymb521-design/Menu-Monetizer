@@ -419,7 +419,7 @@ function AcercaSection({ onSelect }: { onSelect: (v: View) => void }) {
         <div className="h-px bg-white/5" />
         <div className="px-4 py-3.5 flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Soporte</span>
-          <span className="text-primary text-xs">soporte@audiverse.app</span>
+          <span className="text-primary text-xs">studioreygame@gmail.com</span>
         </div>
       </div>
     </div>

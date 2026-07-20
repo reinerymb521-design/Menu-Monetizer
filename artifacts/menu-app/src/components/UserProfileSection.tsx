@@ -66,7 +66,7 @@ export default function UserProfileSection({ onGoToCatalog, onGoToVip }: Props) 
         .from("libros")
         .select("id, titulo, autor, genero, url_portada, URL_PDF, es_premium")
         .in("id", favoriteIds);
-      return (data ?? []) as Libro[];
+      return (data ?? []) as any as Libro[];
     },
     enabled: favoriteIds.length > 0,
   });

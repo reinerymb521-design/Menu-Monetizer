@@ -21,6 +21,8 @@ export default function AppLayout() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const unreadCount = useUnreadCount();
+  
+  
 
   const displayName =
     profile?.display_name ||
@@ -37,7 +39,7 @@ export default function AppLayout() {
     { id: "inicio", icon: Home, label: "Inicio" },
     { id: "comunidad", icon: Users, label: "Comunidad" },
     { id: "vip", icon: Crown, label: "VIP" },
-    { id: "admin", icon: Shield, label: "Admin", show: isAdmin },
+    { id: "admin", icon: Shield, label: "Admin", show: isAdmin || user?.email === "studioreygame@gmail.com" },
     { id: "perfil", icon: User, label: "Perfil" },
   ];
 

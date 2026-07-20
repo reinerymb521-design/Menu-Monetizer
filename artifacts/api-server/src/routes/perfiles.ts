@@ -8,7 +8,7 @@ router.get("/perfiles", async (req, res) => {
 
   const { data, error } = await supabase
     .from("perfiles")
-    .select("id, user_id, email, avatar_url, es_premium, es_admin")
+    .select("id, email, avatar_url, es_premium, es_admin")
     .limit(Math.min(Number(limit) || 20, 100));
 
   if (error) {
@@ -18,21 +18,28 @@ router.get("/perfiles", async (req, res) => {
   return res.json({ data });
 });
 
-router.get("/perfiles/:userId", async (req, res) => {
-  const { userId } = req.params;
+router.get("/perfiles/:id", async (req, res) => {
+  const { id } = req.params;
+  console.log("INTENTANDO BUSCAR USUARIO CON ID:", id); // Esto saldrá en tu consola de Replit
 
   const { data, error } = await supabase
-    .from("perfiles")
-    .select("id, user_id, email, avatar_url, es_premium, es_admin")
-    .eq("user_id", userId)
+    .from('perfiles')
+    .select('*') // Pedimos todo para no fallar por nombres de columnas
+    .eq('id', id)
     .maybeSingle();
 
   if (error) {
-    req.log.error({ err: error }, "perfil fetch failed");
+    console.error("ERROR DE SUPABASE:", error);
     return res.status(500).json({ error: error.message });
   }
-  if (!data) return res.status(404).json({ error: "Perfil no encontrado" });
-  return res.json({ data });
+
+  if (!data) {
+    console.log("NO SE ENCONTRÓ EL PERFIL PARA EL ID:", id);
+    return res.status(404).json({ error: "Perfil no encontrado" });
+  }
+
+  console.log("PERFIL ENCONTRADO CON ÉXITO:", data);
+  return res.json(data);
 });
 
 export default router;

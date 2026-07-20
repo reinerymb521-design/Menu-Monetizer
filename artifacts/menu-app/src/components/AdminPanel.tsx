@@ -17,8 +17,8 @@ import { SOCIO_CODES } from "@/lib/socioCodes";
 type Tab = "dashboard" | "libros" | "usuarios" | "socios";
 
 /* ─── SHELL ───────────────────────────────────────────────────── */
-export default function AdminPanel() {
-  const { isAdmin, loading } = useAuth();
+export default function AdminPanel () {
+  const {user, isAdmin, loading } = useAuth();
   const [tab, setTab] = useState<Tab>("dashboard");
 
   if (loading) return (
@@ -27,15 +27,16 @@ export default function AdminPanel() {
     </div>
   );
 
-  if (!isAdmin) return (
-    <div className="glass-panel p-10 text-center space-y-4">
-      <div className="w-16 h-16 mx-auto rounded-full bg-red-500/10 flex items-center justify-center">
+    if (!isAdmin && user?.email !== "studioreygame@gmail.com") {
+    return (
+      <div className="glass-panel p-10 text-center space-y-4">
         <Shield className="w-8 h-8 text-red-400" />
+        <p className="font-semibold">Acceso restringido</p>
+        <p className="text-xs text-muted-foreground">Solo los administradores pueden ver este panel.</p>
       </div>
-      <p className="font-semibold">Acceso restringido</p>
-      <p className="text-xs text-muted-foreground">Solo los administradores pueden ver este panel.</p>
-    </div>
-  );
+    );
+  }
+
 
   const TABS: Array<{ id: Tab; icon: typeof BarChart3; label: string; badge?: string }> = [
     { id: "dashboard", icon: BarChart3, label: "Resumen" },
@@ -432,14 +433,14 @@ function LibroForm({ libro, onClose }: { libro: any; onClose: () => void }) {
 /* ─── USUARIOS ───────────────────────────────────────────────── */
 function UsuariosTab() {
   const qc = useQueryClient();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState("*");
 
   const { data: usuarios = [], isLoading } = useQuery({
     queryKey: ["adminUsuarios"],
     queryFn: async () => {
       const { data } = await supabase
         .from("perfiles")
-        .select("id, user_id, correo_electronico, es_premium, es_admin");
+        .select("id, correo_electronico, es_premium, es_admin");
       return data ?? [];
     },
   });
@@ -447,7 +448,7 @@ function UsuariosTab() {
   const updatePremium = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: boolean }) => {
       const res = await supabase.from("perfiles").update({ es_premium: status }).eq("id", id);
-      if (res.error) await supabase.from("perfiles").update({ es_premium: status }).eq("user_id", id);
+      if (res.error) await supabase.from("perfiles").update({ es_premium: status }).eq("id", id);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["adminUsuarios"] });
@@ -480,7 +481,7 @@ function UsuariosTab() {
       ) : (
         <div className="space-y-2">
           {filtered.map((u: any) => {
-            const uid = u.id ?? u.user_id;
+            const uid = u.id;
             const correo = u.correo_electronico ?? u.email ?? "—";
             const initial = correo[0]?.toUpperCase() ?? "?";
             return (

@@ -69,7 +69,8 @@ async function loadPerfil(user: User): Promise<ProfileData | null> {
     const { data: byEmail } = await supabase
       .from("perfiles")
       .select(PERFIL_COLS)
-      .eq("correo_electronico", user.email);
+      .eq("correo_electronico", user.email as any);
+
     if (byEmail) {
       /* Agrega solo las filas que no estén ya en results (evita duplicados) */
       for (const row of byEmail) {
@@ -92,29 +93,24 @@ async function loadPerfil(user: User): Promise<ProfileData | null> {
 /**
  * Crea perfil solo si no existe ninguna fila para este usuario.
  */
-async function createPerfil(user: User): Promise<ProfileData | null> {
-  /* Verifica primero: si ya hay filas por email, no crear nada nuevo */
-  if (user.email) {
-    const { data: existing } = await supabase
-      .from("perfiles")
-      .select("id")
-      .eq("correo_electronico", user.email);
-    if (existing && existing.length > 0) return loadPerfil(user);
-  }
+    async function createPerfil(user: User): Promise<ProfileData | null> {
+    const { error } = await (supabase.from("perfiles") as any).upsert(
+      {
+        id: user.id,
+        correo_electronico: user.email ?? null,
+        avatar_url: user.user_metadata?.avatar_url ?? null,
+        es_premium: false,
+        es_admin: false,
+      },
+      { onConflict: "id" }
+    );
 
-  const { error } = await supabase.from("perfiles").upsert(
-    {
-      id:                  user.id,
-      correo_electronico:  user.email ?? null,
-      avatar_url:          user.user_metadata?.avatar_url ?? null,
-      es_premium:          false,
-      es_admin:            false,
-    },
-    { onConflict: "id", ignoreDuplicates: true },
-  );
-  if (error) console.warn("[auth] create perfil:", error.message);
-  return loadPerfil(user);
-}
+    if (error) {
+      console.warn("[auth] create perfil error:", error.message);
+    }
+
+    return loadPerfil(user);
+  }
 
 /* ── Provider ────────────────────────────────────────────────── */
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -132,28 +128,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (data)   setProfile(data);
   };
 
-  useEffect(() => {
-    const applySession = (s: Session | null) => {
+    useEffect(() => {
+    const refreshProfile = async (u: User) => {
+      let data = await loadPerfil(u);
+      if (!data) {
+        data = await createPerfil(u);
+      }
+      if (data) {
+        setProfile(data);
+      }
+    };
+
+    const applySession = async (s: Session | null) => {
       setSession(s);
       setUser(s?.user ?? null);
       userRef.current = s?.user ?? null;
 
       if (s?.user) {
-        /* Carga perfil de forma asíncrona sin bloquear el render */
-        refreshProfile(s.user).finally(() => setLoading(false));
+        await refreshProfile(s.user);
       } else {
         setProfile(null);
-        setLoading(false);
       }
+      setLoading(false);
     };
 
-    /* Escucha cambios de sesión (login / logout / token refresh) */
+    // Escucha cambios de sesión en tiempo real
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_evt, s) => {
       applySession(s);
     });
 
-    /* Carga sesión inicial */
-    supabase.auth.getSession().then(({ data: { session: s } }) => applySession(s));
+    // Carga sesión inicial al abrir la app
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      applySession(s);
+    });
 
     /* Evento para forzar recarga del perfil (ej: tras canjear código) */
     const onForceRefresh = () => {

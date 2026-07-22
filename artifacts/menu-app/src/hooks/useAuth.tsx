@@ -65,11 +65,11 @@ async function loadPerfil(user: User): Promise<ProfileData | null> {
     .eq("id", user.id);
   if (byId) results.push(...byId);
 
-  if (user.email) {
-    const { data: byEmail } = await supabase
-      .from("perfiles")
-      .select(PERFIL_COLS)
-      .eq("correo_electronico", user.email as any);
+      if (user.email) {
+      const { data: byEmail } = await (supabase.from("perfiles") as any)
+        .select(PERFIL_COLS)
+        .eq("correo_electronico", user.email);
+        
 
     if (byEmail) {
       /* Agrega solo las filas que no estén ya en results (evita duplicados) */

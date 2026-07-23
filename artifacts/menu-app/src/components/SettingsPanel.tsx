@@ -195,7 +195,7 @@ function PersonalSection() {
         </button>
       </div>
       <button
-        onClick={() => toast.info("Para eliminar tu cuenta, escríbenos a soporte@audiverse.app")}
+        onClick={() => toast.info("Para eliminar tu cuenta, escríbenos a audiverso935@gmail.com")}
         className="w-full glass-panel px-4 py-3 flex items-center gap-3 text-destructive hover:bg-destructive/10 transition text-sm font-semibold"
       >
         <Trash2 className="w-4 h-4" /> Eliminar mi cuenta
@@ -419,7 +419,7 @@ function AcercaSection({ onSelect }: { onSelect: (v: View) => void }) {
         <div className="h-px bg-white/5" />
         <div className="px-4 py-3.5 flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Soporte</span>
-          <span className="text-primary text-xs">studioreygame@gmail.com</span>
+          <span className="text-primary text-xs">audiverso935@gmail.com</span>
         </div>
       </div>
     </div>

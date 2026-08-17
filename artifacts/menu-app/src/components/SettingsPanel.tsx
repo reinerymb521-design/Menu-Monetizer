@@ -170,7 +170,7 @@ function PersonalSection() {
   const save = async () => {
     if (!user) return;
     setSaving(true);
-    const { error } = await supabase.from("perfiles").update({ avatar_url: avatarUrl.trim() || null })
+    const { error } = await (supabase as any).from("perfiles").update({ avatar_url: avatarUrl.trim() || null })
       .eq("correo_electronico", user.email ?? "");
     setSaving(false);
     if (error) toast.error(error.message);

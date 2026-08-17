@@ -13,6 +13,8 @@ interface ProfileData {
   avatar_url:   string | null;
   es_premium:   boolean;
   es_admin:     boolean;
+  es_administrador?: boolean;
+  perfil_publico: boolean;
 }
 
 interface AuthContextType {
@@ -38,17 +40,19 @@ function emailToName(email: string | null | undefined): string | null {
   return email ? (email.split("@")[0] ?? null) : null;
 }
 
-function rowToProfile(row: any): ProfileData {
+function rowToProfile(row: any, roleIsAdmin = false): ProfileData {
   return {
     display_name: emailToName(row.correo_electronico ?? row.email ?? null),
     avatar_url:   row.avatar_url  ?? null,
     es_premium:   Boolean(row.es_premium),
-    es_admin:     Boolean(row.es_admin),
+    es_admin:     Boolean(row.es_admin) || Boolean(row.es_administrador) || roleIsAdmin,
+    es_administrador: Boolean(row.es_administrador) || Boolean(row.es_admin) || roleIsAdmin,
+    perfil_publico: row.perfil_publico !== false,
   };
 }
 
 /* Columnas a seleccionar — nunca incluimos "user_id" (no existe) */
-const PERFIL_COLS = "id, correo_electronico, avatar_url, es_premium, es_admin";
+const PERFIL_COLS = "id, user_id, correo_electronico, email, avatar_url, es_premium, es_admin, es_administrador, perfil_publico";
 
 /**
  * Carga el perfil.
@@ -83,11 +87,17 @@ async function loadPerfil(user: User): Promise<ProfileData | null> {
 
   /* Elige la mejor fila: admin > premium > primera */
   const best =
-    results.find((r) => r.es_admin) ??
+    results.find((r) => r.es_admin || r.es_administrador) ??
     results.find((r) => r.es_premium) ??
     results[0];
 
-  return rowToProfile(best);
+  const { data: roles } = await (supabase as any)
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", user.id);
+  const roleIsAdmin = Boolean(roles?.some((role: { role: string }) => role.role === "admin"));
+
+  return rowToProfile(best, roleIsAdmin);
 }
 
 /**
@@ -101,6 +111,8 @@ async function loadPerfil(user: User): Promise<ProfileData | null> {
         avatar_url: user.user_metadata?.avatar_url ?? null,
         es_premium: false,
         es_admin: false,
+        es_administrador: false,
+        perfil_publico: true,
       },
       { onConflict: "id" }
     );
@@ -178,8 +190,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await supabase.auth.signOut();
   };
 
-  const isPremium = profile?.es_premium ?? false;
-  const isAdmin   = profile?.es_admin   ?? false;
+  // Administrators bypass VIP gating without needing a code or subscription.
+  const isPremium = Boolean(profile?.es_premium || profile?.es_admin);
+  const isAdmin   = Boolean(profile?.es_admin || profile?.es_administrador);
 
   return (
     <AuthContext.Provider value={{ user, session, profile, isPremium, isAdmin, loading, signOut }}>

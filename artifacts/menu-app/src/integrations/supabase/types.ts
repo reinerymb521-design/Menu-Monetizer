@@ -79,6 +79,7 @@ export type Database = {
           avatar_url: string | null
           es_premium: boolean
           es_admin: boolean
+          es_administrador: boolean
         }
         Insert: {
           id?: string
@@ -87,6 +88,7 @@ export type Database = {
           avatar_url?: string | null
           es_premium?: boolean
           es_admin?: boolean
+          es_administrador?: boolean
         }
         Update: {
           id?: string
@@ -95,6 +97,7 @@ export type Database = {
           avatar_url?: string | null
           es_premium?: boolean
           es_admin?: boolean
+          es_administrador?: boolean
         }
         Relationships: []
       }

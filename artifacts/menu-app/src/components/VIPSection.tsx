@@ -21,7 +21,7 @@ const cardStyle: React.CSSProperties = {
 };
 
 export default function VIPSection() {
-  const { user, isPremium } = useAuth();
+  const { user, isPremium, isAdmin } = useAuth();
   const qc = useQueryClient();
   const [plan, setPlan] = useState<"monthly" | "yearly">("monthly");
   const [codigo, setCodigo] = useState("");
@@ -29,18 +29,19 @@ export default function VIPSection() {
 
   const canjearCodigo = async () => {
     if (!user) { toast.error("Inicia sesión primero"); return; }
+    if (isAdmin) { toast.success("Tu cuenta de administrador ya tiene acceso VIP."); return; }
     const upper = codigo.trim().toUpperCase();
     if (!isValidSocioCode(upper)) {
       toast.error("Código inválido. Verifica y vuelve a intentarlo.");
       return;
     }
     setCanjeando(true);
-    const { error: e1 } = await supabase
+      const { error: e1 } = await (supabase as any)
       .from("perfiles")
       .update({ es_premium: true })
       .eq("id", user.id);
     if (e1) {
-      const { error: e2 } = await supabase
+      const { error: e2 } = await (supabase as any)
         .from("perfiles")
         .update({ es_premium: true })
         .eq("correo_electronico", user.email ?? "");
@@ -83,8 +84,12 @@ export default function VIPSection() {
           >
             <Crown className="w-8 h-8 text-black" />
           </div>
-          <h2 className="text-xl font-bold text-yellow-400">¡Eres VIP! 🎉</h2>
-          <p className="text-sm text-white/60">Disfruta de todos los beneficios premium.</p>
+          <h2 className="text-xl font-bold text-yellow-400">
+            {isAdmin ? "Acceso VIP de administrador" : "¡Eres VIP! 🎉"}
+          </h2>
+          <p className="text-sm text-white/60">
+            {isAdmin ? "Tu rol administrativo desbloquea el contenido sin código ni suscripción." : "Disfruta de todos los beneficios premium."}
+          </p>
 
           {sub && (
             <div className="rounded-xl p-3 text-left space-y-1.5" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,220,80,0.15)" }}>

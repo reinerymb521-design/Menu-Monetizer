@@ -18,7 +18,7 @@ type Tab = "dashboard" | "libros" | "usuarios" | "socios";
 
 /* ─── SHELL ───────────────────────────────────────────────────── */
 export default function AdminPanel () {
-  const {user, isAdmin, loading } = useAuth();
+  const { isAdmin, loading } = useAuth();
   const [tab, setTab] = useState<Tab>("dashboard");
 
   if (loading) return (
@@ -27,7 +27,7 @@ export default function AdminPanel () {
     </div>
   );
 
-    if (!isAdmin && user?.email !== "studioreygame@gmail.com") {
+    if (!isAdmin) {
     return (
       <div className="glass-panel p-10 text-center space-y-4">
         <Shield className="w-8 h-8 text-red-400" />
@@ -89,15 +89,22 @@ function DashboardTab() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["adminStats"],
     queryFn: async () => {
-      const [libros, perfiles, premium] = await Promise.all([
+      const [libros, perfiles, premium, suscripciones] = await Promise.all([
         supabase.from("libros").select("id",    { count: "exact", head: true }),
-        supabase.from("perfiles").select("id",  { count: "exact", head: true }),
-        supabase.from("perfiles").select("id",  { count: "exact", head: true }).eq("es_premium", true),
+        (supabase as any).from("perfiles").select("id,user_id,email,correo_electronico,es_premium,es_admin,es_administrador"),
+        (supabase as any).from("perfiles").select("id",  { count: "exact", head: true }).eq("es_premium", true),
+        (supabase as any).from("suscripciones").select("*"),
       ]);
+      const usuarios = (perfiles.data ?? []) as any[];
+      const subs = (suscripciones.data ?? []) as any[];
+      const activas = subs.filter((sub) => String(sub.estado ?? sub.status ?? "").toLowerCase() === "activa" || String(sub.status ?? "").toLowerCase() === "active");
       return {
         totalLibros:   libros.count   ?? 0,
-        totalUsuarios: perfiles.count ?? 0,
+        totalUsuarios: usuarios.length,
         totalVIP:      premium.count  ?? 0,
+        totalSuscripciones: activas.length,
+        usuarios,
+        suscripciones: subs,
       };
     },
   });
@@ -106,6 +113,7 @@ function DashboardTab() {
     { label: "Libros",    value: stats?.totalLibros,   icon: BookOpen, color: "text-blue-400",   bg: "bg-blue-400/10" },
     { label: "Usuarios",  value: stats?.totalUsuarios, icon: Users,    color: "text-green-400",  bg: "bg-green-400/10" },
     { label: "VIP",       value: stats?.totalVIP,      icon: Crown,    color: "text-yellow-400", bg: "bg-yellow-400/10" },
+    { label: "Suscripciones", value: stats?.totalSuscripciones, icon: Star, color: "text-fuchsia-400", bg: "bg-fuchsia-400/10" },
   ];
 
   const chartData = [
@@ -116,7 +124,7 @@ function DashboardTab() {
   return (
     <div className="space-y-4">
       {/* Stat cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {STAT_CARDS.map(({ label, value, icon: Icon, color, bg }) => (
           <div key={label} className="glass-panel p-3 text-center space-y-2">
             <div className={`w-8 h-8 mx-auto rounded-full ${bg} flex items-center justify-center`}>
@@ -128,6 +136,52 @@ function DashboardTab() {
             <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</p>
           </div>
         ))}
+      </div>
+
+      <div className="glass-panel p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold">Usuarios y suscripciones</p>
+            <p className="text-[10px] text-muted-foreground">Vista rápida del estado de cada cuenta</p>
+          </div>
+          <Users className="w-4 h-4 text-primary" />
+        </div>
+        {isLoading ? (
+          <div className="flex justify-center py-5"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+        ) : stats?.usuarios?.length ? (
+          <div className="space-y-2">
+            {stats.usuarios.slice(0, 12).map((u: any) => {
+              const uid = u.user_id ?? u.id;
+              const correo = u.correo_electronico ?? u.email ?? "Usuario sin correo";
+              const linkedSub = stats.suscripciones.find((sub: any) =>
+                sub.user_id === uid || sub.perfil_id === uid || sub.usuario_id === uid
+              );
+              const subscriptionState = linkedSub?.estado ?? linkedSub?.status ?? (u.es_premium || u.es_admin || u.es_administrador ? "VIP" : "Gratuito");
+              return (
+                <div key={uid} className="flex items-center gap-3 rounded-lg border border-white/10 bg-black/10 px-3 py-2">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                    u.es_admin || u.es_administrador ? "bg-primary/20 text-primary" : u.es_premium ? "bg-yellow-400/20 text-yellow-400" : "bg-white/5 text-muted-foreground"
+                  }`}>
+                    {correo[0]?.toUpperCase() ?? "?"}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium">{correo}</p>
+                    <p className="text-[10px] text-muted-foreground">{u.es_admin || u.es_administrador ? "Administrador" : u.es_premium ? "Acceso VIP" : "Plan gratuito"}</p>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-semibold ${
+                    String(subscriptionState).toLowerCase().includes("act") || subscriptionState === "VIP"
+                      ? "bg-emerald-400/10 text-emerald-300"
+                      : "bg-white/5 text-muted-foreground"
+                  }`}>
+                    {subscriptionState}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="py-4 text-center text-xs text-muted-foreground">No hay usuarios para mostrar.</p>
+        )}
       </div>
 
       {/* Mini gráfica */}
@@ -285,7 +339,9 @@ function LibrosTab() {
                   onConfirm={() => deleteLibro.mutate(b.id)}
                   title="Eliminar libro"
                   description={`¿Borrar "${b.titulo}"? Esta acción no se puede deshacer.`}
-                />
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                </ConfirmButton>
               </div>
             </div>
           ))}
@@ -332,9 +388,10 @@ function LibroForm({ libro, onClose }: { libro: any; onClose: () => void }) {
     if (!form.titulo.trim()) { toast.error("El título es obligatorio"); return; }
     setSaving(true);
     const payload = { ...form };
+    const client = supabase as any;
     const { error } = libro
-      ? await supabase.from("libros").update(payload).eq("id", libro.id)
-      : await supabase.from("libros").insert(payload);
+      ? await client.from("libros").update(payload).eq("id", libro.id)
+      : await client.from("libros").insert(payload);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success(libro ? "Libro actualizado" : "Libro creado");

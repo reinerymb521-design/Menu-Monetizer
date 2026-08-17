@@ -3,6 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import BookCard from "./BookCard";
 import { BookOpen } from "lucide-react";
+import SocialPostsSection from "./SocialPostsSection";
+import AdMobSlot from "./AdMobSlot";
+import { useAuth } from "@/hooks/useAuth";
 
 const GENEROS = [
   { label: "Todos",                      emoji: "🌎" },
@@ -13,6 +16,7 @@ const GENEROS = [
 
 export default function HomePage({ searchQuery }: { searchQuery: string }) {
   const [activeGenre, setActiveGenre] = useState("Todos");
+  const { isPremium } = useAuth();
 
   const { data: libros = [], isLoading } = useQuery({
     queryKey: ["libros"],
@@ -45,6 +49,9 @@ export default function HomePage({ searchQuery }: { searchQuery: string }) {
 
   return (
     <section className="space-y-6 pb-20">
+      <SocialPostsSection mode="feed" />
+      {!isPremium && <AdMobSlot placement="home-feed" />}
+
       {/* Filtros de Género */}
       <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
         {GENEROS.map((g) => (

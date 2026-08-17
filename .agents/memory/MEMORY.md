@@ -1,0 +1,1 @@
+- [AudiVerse data compatibility](audiverse-data-compatibility.md) — keep new social features compatible with the app's Spanish Supabase tables and older English schema.

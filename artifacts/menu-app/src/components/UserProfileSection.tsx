@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -11,6 +11,7 @@ import {
 import BookDetailModal from "./BookDetailModal";
 import type { Libro } from "./BookCard";
 import { toast } from "sonner";
+import SocialPostsSection from "./SocialPostsSection";
 
 interface Props {
   onGoToCatalog?: () => void;
@@ -32,6 +33,11 @@ export default function UserProfileSection({ onGoToCatalog, onGoToVip }: Props) 
   const navigate = useNavigate();
 
   const [selectedBook, setSelectedBook] = useState<Libro | null>(null);
+  const [profilePublic, setProfilePublic] = useState(profile?.perfil_publico !== false);
+
+  useEffect(() => {
+    setProfilePublic(profile?.perfil_publico !== false);
+  }, [profile?.perfil_publico]);
 
   /* ── Fondo de pantalla (solo premium) ── */
   const bgInputRef = useRef<HTMLInputElement>(null);
@@ -101,6 +107,32 @@ export default function UserProfileSection({ onGoToCatalog, onGoToVip }: Props) 
   const removeBg = () => {
     localStorage.removeItem("audiverse_profile_bg");
     setBgImage(null);
+  };
+
+  const toggleProfileVisibility = async () => {
+    const nextValue = !profilePublic;
+    const client = supabase as any;
+    let result = await client
+      .from("perfiles")
+      .update({ perfil_publico: nextValue })
+      .eq("id", user?.id);
+
+    // Compatibility with the older schema where auth UUID lives in user_id.
+    if (result.error) {
+      result = await client
+        .from("perfiles")
+        .update({ perfil_publico: nextValue })
+        .eq("user_id", user?.id);
+    }
+
+    if (result.error) {
+      toast.error("No se pudo actualizar la privacidad del perfil");
+      return;
+    }
+
+    setProfilePublic(nextValue);
+    toast.success(nextValue ? "Tu perfil ahora es público" : "Tu perfil ahora es privado");
+    window.dispatchEvent(new Event("audiverse:profile-refresh"));
   };
 
   /* Botón bloqueado: muestra candado y lleva al VIP */
@@ -282,8 +314,40 @@ export default function UserProfileSection({ onGoToCatalog, onGoToVip }: Props) 
                 </div>
               </div>
             </div>
+
+            {/* Privacidad del perfil */}
+            <div className="rounded-2xl p-3 space-y-2" style={glass}>
+              <div className="flex items-center gap-2">
+                {profilePublic ? <Map className="w-4 h-4 text-emerald-300" /> : <Lock className="w-4 h-4 text-amber-300" />}
+                <p className="text-[10px] font-bold text-white/80">Privacidad</p>
+              </div>
+              <p className="text-[9px] text-white/50 leading-relaxed">
+                {profilePublic
+                  ? "Tu perfil se puede descubrir en la comunidad."
+                  : "Tu perfil es privado; tus libros públicos sí pueden aparecer en Inicio."}
+              </p>
+              <button
+                type="button"
+                onClick={toggleProfileVisibility}
+                className={`w-full rounded-lg px-2 py-1.5 text-[10px] font-semibold transition ${
+                  profilePublic
+                    ? "bg-emerald-400/15 text-emerald-200 hover:bg-emerald-400/25"
+                    : "bg-amber-400/15 text-amber-200 hover:bg-amber-400/25"
+                }`}
+              >
+                {profilePublic ? "Perfil público" : "Perfil privado"}
+              </button>
+            </div>
           </div>
         </div>
+
+        <SocialPostsSection
+          mode="profile"
+          profileUserId={user.id}
+          profileName={displayName}
+          isOwner
+          onGoToVip={onGoToVip}
+        />
 
         {/* ── Carrusel de favoritos ── */}
         {favBooks.length > 0 && (

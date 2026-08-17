@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { Home, Users, Crown, Bell, User, Settings as SettingsIcon, Shield } from "lucide-react";
@@ -10,6 +10,7 @@ import NotificationsPanel, { useUnreadCount } from "./NotificationsPanel";
 import VIPSection from "./VIPSection";
 import AdminPanel from "./AdminPanel";
 import SettingsPanel from "./SettingsPanel";
+import AdminVerificationModal from "./AdminVerificationModal";
 
 type Section = "inicio" | "comunidad" | "vip" | "perfil" | "admin";
 
@@ -20,7 +21,14 @@ export default function AppLayout() {
   const [searchQuery, setSearchQuery] = useState("");
   const [notifOpen, setNotifOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [adminVerificationOpen, setAdminVerificationOpen] = useState(false);
+  const [adminUnlocked, setAdminUnlocked] = useState(false);
   const unreadCount = useUnreadCount();
+
+  useEffect(() => {
+    setAdminUnlocked(false);
+    setAdminVerificationOpen(false);
+  }, [user?.id]);
   
   
 
@@ -113,7 +121,13 @@ export default function AppLayout() {
         {navItems.filter((n) => n.show !== false).map(({ id, icon: Icon, label }) => (
           <button
             key={id}
-            onClick={() => setActiveSection(id)}
+            onClick={() => {
+              if (id === "admin" && !adminUnlocked) {
+                setAdminVerificationOpen(true);
+                return;
+              }
+              setActiveSection(id);
+            }}
             className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition ${
               activeSection === id ? "text-primary" : "text-muted-foreground hover:text-foreground"
             }`}
@@ -128,6 +142,15 @@ export default function AppLayout() {
       <SettingsPanel
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+      />
+      <AdminVerificationModal
+        open={adminVerificationOpen}
+        onClose={() => setAdminVerificationOpen(false)}
+        onVerified={() => {
+          setAdminUnlocked(true);
+          setAdminVerificationOpen(false);
+          setActiveSection("admin");
+        }}
       />
     </div>
   );

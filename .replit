@@ -19,22 +19,6 @@ expertMode = true
 path = "scripts/post-merge.sh"
 timeoutMs = 20000
 
-[[ports]]
-localPort = 8080
-externalPort = 8080
-
-[[ports]]
-localPort = 8081
-externalPort = 8081
-
-[[ports]]
-localPort = 8082
-externalPort = 3000
-
-[[ports]]
-localPort = 23650
-externalPort = 80
-
 [userenv]
 
 [userenv.shared]
@@ -43,3 +27,15 @@ VITE_SUPABASE_ANON_KEY = "sb_publishable_NRCFY-9gVhEm-BzWYY1-JA__km7FtAh"
 VITE_SUPABASE_URL = "https://bnakspevjtzzesjicqjw.supabase.co"
 SUPABASE_URL = "https://bnakspevjtzzesjicqjw.supabase.co"
 SUPABASE_ANON_KEY = "sb_publishable_NRCFY-9gVhEm-BzWYY1-JA__km7FtAh"
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8081
+externalPort = 80
+
+[[ports]]
+localPort = 23650
+externalPort = 3000

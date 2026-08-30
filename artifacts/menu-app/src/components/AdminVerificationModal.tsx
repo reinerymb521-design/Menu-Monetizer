@@ -43,10 +43,10 @@ export default function AdminVerificationModal({
 
     setVerifying(true);
     try {
-      // Primera barrera: el usuario autenticado debe tener el rol real.
+      // Primera barrera: el usuario autenticado debe tener el rol de admin en la tabla perfiles.
       const { data: profile, error: profileError } = await (supabase as any)
         .from("perfiles")
-        .select("es_admin,es_administrador")
+        .select("es_admin, es_administrador")
         .or(`id.eq.${user.id},user_id.eq.${user.id}`)
         .limit(1)
         .maybeSingle();

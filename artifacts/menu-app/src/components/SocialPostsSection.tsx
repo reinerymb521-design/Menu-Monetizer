@@ -1,33 +1,29 @@
-import { useMemo, useRef, useState } from "react";
-import type { ChangeEvent, FormEvent } from "react";
+import { useState } from "react";
+import type { FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { CreatePostModal } from "./CreatePostModal";
 import {
   BookOpen,
   Check,
   ChevronDown,
   ChevronUp,
-  Clock3,
   FileText,
   Globe2,
   Heart,
-  ImagePlus,
   Loader2,
   Lock,
   MessageCircle,
   MoreHorizontal,
-  Paperclip,
-  PenLine,
   Plus,
   Send,
   Share2,
-  ShieldAlert,
   Star,
-  UserPlus,
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
+
 
 export interface SocialPostsSectionProps {
   mode: "feed" | "profile";
@@ -224,7 +220,6 @@ function PostCard({
       await onRefresh();
       await likedQuery.refetch();
     } catch (error: any) {
-      // Una policy RLS puede impedir que el usuario cree o quite su reacción.
       toast.error(error?.message || "No se pudo actualizar el Me gusta.");
     } finally {
       setIsBusy(false);
@@ -273,7 +268,6 @@ function PostCard({
       await onRefresh();
       await commentsQuery.refetch();
     } catch (error: any) {
-      // Si la policy RLS exige ser seguidor, Supabase devolverá el bloqueo aquí.
       toast.error(error?.message || "No se pudo publicar el comentario.");
     } finally {
       setIsBusy(false);
@@ -307,7 +301,6 @@ function PostCard({
       await reviewsQuery.refetch();
       toast.success("Reseña guardada.");
     } catch (error: any) {
-      // La policy RLS también puede limitar reseñas a contenido visible para el lector.
       toast.error(error?.message || "No se pudo guardar la reseña.");
     } finally {
       setIsBusy(false);
@@ -474,148 +467,6 @@ function PostCard({
   );
 }
 
-function CreatePostForm({ userId, onCreated }: { userId: string; onCreated: () => void }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [visibility, setVisibility] = useState<Visibility>("public");
-  const [cover, setCover] = useState<File | null>(null);
-  const [book, setBook] = useState<File | null>(null);
-  const coverInput = useRef<HTMLInputElement>(null);
-  const bookInput = useRef<HTMLInputElement>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const upload = async (bucket: string, file: File, prefix: string) => {
-    const safeName = file.name.toLowerCase().replace(/[^a-z0-9.-]+/g, "-");
-    const path = `${userId}/${Date.now()}-${prefix}-${safeName}`;
-    const { error } = await supabase.storage.from(bucket).upload(path, file, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: file.type,
-    });
-    if (error) throw error;
-    return path;
-  };
-
-  const selectCover = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (!["image/jpeg", "image/png"].includes(file.type)) {
-      toast.error("La portada debe ser JPG o PNG.");
-      return;
-    }
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error("La portada no puede superar 8 MB.");
-      return;
-    }
-    setCover(file);
-  };
-
-  const selectBook = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (file.type !== "application/pdf") {
-      toast.error("El archivo debe ser un PDF.");
-      return;
-    }
-    if (file.size > 40 * 1024 * 1024) {
-      toast.error("El PDF no puede superar 40 MB.");
-      return;
-    }
-    setBook(file);
-  };
-
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!title.trim()) {
-      toast.error("Escribe un título para la publicación.");
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      let coverUrl: string | null = null;
-      let bookPath: string | null = null;
-      if (cover) {
-        const path = await upload("book-covers", cover, "cover");
-        const { data } = supabase.storage.from("book-covers").getPublicUrl(path);
-        coverUrl = data.publicUrl;
-      }
-      if (book) bookPath = await upload("book-files", book, "book");
-
-      const { error } = await db.from("social_posts").insert({
-        author_id: userId,
-        title: title.trim(),
-        description: description.trim() || null,
-        cover_url: coverUrl,
-        book_path: bookPath,
-        visibility,
-        is_official: false,
-        official_label: null,
-        like_count: 0,
-        comment_count: 0,
-        share_count: 0,
-      });
-      if (error) throw error;
-      setTitle("");
-      setDescription("");
-      setVisibility("public");
-      setCover(null);
-      setBook(null);
-      if (coverInput.current) coverInput.current.value = "";
-      if (bookInput.current) bookInput.current.value = "";
-      toast.success("Publicación creada.");
-      onCreated();
-    } catch (error: any) {
-      // Storage y social_posts pueden tener policies RLS separadas; mostramos el bloqueo concreto.
-      toast.error(error?.message || "No se pudo crear la publicación.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <form onSubmit={submit} className={`${glassCard} space-y-4 p-4`} data-testid="form-create-social-post">
-      <div className="flex items-start gap-3">
-        <div className="rounded-xl bg-fuchsia-200/10 p-2.5 text-fuchsia-100"><PenLine className="h-5 w-5" /></div>
-        <div>
-          <h2 className="text-sm font-bold text-white">Comparte algo con tu comunidad</h2>
-          <p className="mt-1 text-xs text-white/45">Una recomendación, una historia o una nueva escucha.</p>
-        </div>
-      </div>
-      <div className="space-y-3">
-        <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Título de la publicación" required className="w-full rounded-xl border border-white/15 bg-white/[0.06] px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-fuchsia-200/60" data-testid="input-post-title" />
-        <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Añade una descripción (opcional)" rows={3} className="w-full resize-none rounded-xl border border-white/15 bg-white/[0.06] px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-fuchsia-200/60" data-testid="textarea-post-description" />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-white/20 bg-white/[0.035] px-3 py-2.5 text-xs text-white/60 transition hover:border-fuchsia-200/50 hover:text-white" data-testid="label-cover-upload">
-            <ImagePlus className="h-4 w-4 text-fuchsia-200" />
-            <span className="min-w-0 flex-1 truncate">{cover?.name || "Portada JPG o PNG"}</span>
-            <input ref={coverInput} type="file" accept="image/jpeg,image/png" onChange={selectCover} className="sr-only" data-testid="input-post-cover" />
-          </label>
-          <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-white/20 bg-white/[0.035] px-3 py-2.5 text-xs text-white/60 transition hover:border-fuchsia-200/50 hover:text-white" data-testid="label-book-upload">
-            <Paperclip className="h-4 w-4 text-cyan-200" />
-            <span className="min-w-0 flex-1 truncate">{book?.name || "PDF opcional"}</span>
-            <input ref={bookInput} type="file" accept="application/pdf,.pdf" onChange={selectBook} className="sr-only" data-testid="input-post-book" />
-          </label>
-        </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <label className="flex items-center gap-2 text-xs text-white/60">
-            <VisibilityIcon visibility={visibility} />
-            <span>Visibilidad</span>
-            <select value={visibility} onChange={(event) => setVisibility(event.target.value as Visibility)} className="rounded-lg border border-white/15 bg-[#211b45] px-2 py-1.5 text-xs text-white outline-none" data-testid="select-post-visibility">
-              <option value="public">Pública</option>
-              <option value="followers">Seguidores</option>
-              <option value="private">Solo yo</option>
-            </select>
-          </label>
-          <button type="submit" disabled={isSubmitting || !title.trim()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-200 to-violet-200 px-4 py-2.5 text-xs font-bold text-[#24163f] transition hover:brightness-105 disabled:opacity-45" data-testid="button-create-post">
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Publicar
-          </button>
-        </div>
-      </div>
-    </form>
-  );
-}
-
 export default function SocialPostsSection({
   mode,
   profileUserId,
@@ -625,304 +476,129 @@ export default function SocialPostsSection({
 }: SocialPostsSectionProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const targetId = mode === "profile" ? profileUserId || user?.id : undefined;
-  const owner = mode === "profile" && Boolean(isOwner ?? (user?.id && targetId === user.id));
-
-  const profileQuery = useQuery({
-    queryKey: ["social-profile", targetId],
-    queryFn: async () => {
-      const { data, error } = await db
-        .from("perfiles")
-        .select("id,user_id,email,avatar_url,perfil_publico")
-        .or(`user_id.eq.${targetId},id.eq.${targetId}`)
-        .maybeSingle();
-      if (error) throw error;
-      return (data || null) as Profile | null;
-    },
-    enabled: mode === "profile" && Boolean(targetId),
-  });
-
-  const isPrivate = mode === "profile" && profileQuery.data?.perfil_publico === false;
-
-  const accessQuery = useQuery({
-    queryKey: ["social-access-request", user?.id, targetId],
-    queryFn: async () => {
-      const { data, error } = await db
-        .from("social_access_requests")
-        .select("status")
-        .eq("requester_id", user?.id)
-        .eq("target_id", targetId)
-        .maybeSingle();
-      if (error) throw error;
-      return (data?.status as string | undefined) || null;
-    },
-    enabled: Boolean(user?.id && targetId && isPrivate && !owner),
-  });
-
-  const canReadPosts =
-    mode === "feed" ||
-    owner ||
-    !isPrivate ||
-    accessQuery.data === "accepted";
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const postsQuery = useQuery({
-    queryKey: ["social-posts", mode, targetId, canReadPosts],
+    queryKey: ["social-posts", mode, profileUserId],
     queryFn: async () => {
-      let request = db
+      let query = db
         .from("social_posts")
         .select("id,author_id,title,description,cover_url,book_path,visibility,is_official,official_label,like_count,comment_count,share_count,created_at")
-        .order("created_at", { ascending: false })
-        .limit(50);
-      if (mode === "profile" && targetId) {
-        request = request.eq("author_id", targetId);
-      } else {
-        request = request.or("visibility.eq.public,is_official.eq.true");
-      }
-      const { data, error } = await request;
-      if (error) throw error;
-      const posts = (data || []) as SocialPost[];
-      const authorIds = [...new Set(posts.map((post) => post.author_id).filter(Boolean))] as string[];
-      if (!authorIds.length) return { posts, authors: [] as Profile[] };
-      const { data: authors, error: authorError } = await db
-        .from("perfiles")
-        .select("id,user_id,email,avatar_url,perfil_publico")
-        .or(`user_id.in.(${authorIds.join(",")}),id.in.(${authorIds.join(",")})`);
-      if (authorError) throw authorError;
-      return { posts, authors: (authors || []) as Profile[] };
-    },
-    enabled: canReadPosts,
-  });
-
-  const followQuery = useQuery({
-    queryKey: ["social-follow", user?.id, targetId],
-    queryFn: async () => {
-      if (!user?.id || !targetId) return false;
-      const { data, error } = await db
-        .from("followers")
-        .select("follower_id")
-        .eq("follower_id", user.id)
-        .eq("following_id", targetId)
-        .maybeSingle();
-      if (error) throw error;
-      return Boolean(data);
-    },
-    enabled: mode === "profile" && Boolean(user?.id && targetId && !owner),
-  });
-
-  const incomingRequestsQuery = useQuery({
-    queryKey: ["social-incoming-access-requests", user?.id],
-    queryFn: async () => {
-      const { data, error } = await db
-        .from("social_access_requests")
-        .select("id,requester_id,status,created_at")
-        .eq("target_id", user?.id)
-        .eq("status", "pending")
         .order("created_at", { ascending: false });
+
+      if (mode === "profile" && profileUserId) {
+        query = query.eq("author_id", profileUserId);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      return (data || []) as SocialPost[];
     },
-    enabled: Boolean(owner && user?.id),
   });
 
-  const answerAccessRequest = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: "accepted" | "rejected" }) => {
-      const { error } = await db
-        .from("social_access_requests")
-        .update({ status })
-        .eq("id", id)
-        .eq("target_id", user?.id);
+  const authorsQuery = useQuery({
+    queryKey: ["social-posts-authors", postsQuery.data],
+    queryFn: async () => {
+      const posts = postsQuery.data || [];
+      const ids = Array.from(new Set(posts.map((p) => p.author_id).filter(Boolean)));
+      if (!ids.length) return new Map<string, Profile>();
+
+      const { data, error } = await db
+        .from("perfiles")
+        .select("user_id,display_name,avatar_url,perfil_publico")
+        .in("user_id", ids);
+
       if (error) throw error;
+      const map = new Map<string, Profile>();
+      (data || []).forEach((item: Profile) => {
+        if (item.user_id) map.set(item.user_id, item);
+      });
+      return map;
     },
-    onSuccess: async (_, variables) => {
-      await incomingRequestsQuery.refetch();
-      toast.success(variables.status === "accepted" ? "Solicitud aceptada." : "Solicitud rechazada.");
-    },
-    onError: (error: any) => {
-      toast.error(error?.message || "No se pudo responder la solicitud.");
-    },
+    enabled: Boolean(postsQuery.data?.length),
   });
 
   const refreshSocial = async () => {
     await queryClient.invalidateQueries({ queryKey: ["social-posts"] });
-    await queryClient.invalidateQueries({ queryKey: ["social-post-like"] });
   };
 
-  const toggleFollow = useMutation({
-    mutationFn: async () => {
-      if (!user?.id || !targetId) throw new Error("Necesitas una sesión activa.");
-      if (followQuery.data) {
-        const { error } = await db.from("followers").delete().eq("follower_id", user.id).eq("following_id", targetId);
-        if (error) throw error;
-      } else {
-        const { error } = await db.from("followers").insert({ follower_id: user.id, following_id: targetId });
-        if (error) throw error;
-      }
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["social-follow", user?.id, targetId] });
-      toast.success(followQuery.data ? "Has dejado de seguir este perfil." : "Ahora sigues este perfil.");
-    },
-    onError: (error: any) => {
-      // La policy RLS debe permitir que un usuario gestione su propia relación de seguimiento.
-      toast.error(error?.message || "No se pudo actualizar la suscripción.");
-    },
-  });
-
-  const requestAccess = useMutation({
-    mutationFn: async () => {
-      if (!user?.id || !targetId) throw new Error("Necesitas una sesión activa.");
-      const { error } = await db.from("social_access_requests").upsert(
-        { requester_id: user.id, target_id: targetId, status: "pending" },
-        { onConflict: "requester_id,target_id" },
-      );
-      if (error) throw error;
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["social-access-request", user?.id, targetId] });
-      toast.success("Solicitud enviada.");
-    },
-    onError: (error: any) => {
-      // Una policy RLS puede exigir que la solicitud solo la cree el propio requester.
-      toast.error(error?.message || "No se pudo solicitar acceso.");
-    },
-  });
-
-  const authorsById = useMemo(() => {
-    const map = new Map<string, Profile>();
-    (postsQuery.data?.authors || []).forEach((author) => map.set(author.user_id, author));
-    if (profileQuery.data && targetId) map.set(targetId, profileQuery.data);
-    return map;
-  }, [postsQuery.data?.authors, profileQuery.data, targetId]);
-
-  const profileDisplayName =
-    profileName ||
-    profileQuery.data?.display_name ||
-    profileQuery.data?.email?.split("@")[0] ||
-    "Perfil AudiVerse";
-  const title = mode === "profile" ? profileDisplayName : "Pulso de AudiVerse";
-  const subtitle =
-    mode === "profile"
-      ? isPrivate && !owner
-        ? "Este perfil comparte sus historias con permiso."
-        : owner
-          ? "Tu rincón para recomendar lecturas y sonidos."
-          : "Publicaciones, recomendaciones y nuevas voces."
-      : "Publicaciones oficiales y libros compartidos por la comunidad.";
-
-  if (mode === "profile" && profileQuery.isLoading) {
-    return (
-      <section className="space-y-4" aria-label="Cargando perfil" data-testid="status-profile-loading">
-        <div className={`${glassCard} h-28 animate-pulse bg-white/[0.04]`} />
-        <div className={`${glassCard} h-72 animate-pulse bg-white/[0.04]`} />
-      </section>
-    );
-  }
+  const authorsById = authorsQuery.data || new Map<string, Profile>();
 
   return (
-    <section className="mx-auto w-full max-w-2xl space-y-5 pb-24" data-testid={`social-posts-section-${mode}`}>
-      <header className="relative overflow-hidden rounded-[1.6rem] border border-white/15 bg-gradient-to-br from-fuchsia-300/15 via-violet-300/[0.08] to-cyan-200/10 p-5 shadow-[0_18px_60px_rgba(12,10,45,0.28)] backdrop-blur-xl">
-        <div className="pointer-events-none absolute -right-12 -top-16 h-40 w-40 rounded-full bg-fuchsia-200/10 blur-3xl" />
-        <div className="relative flex items-start gap-3">
-          {mode === "profile" ? <Avatar name={title} url={profileQuery.data?.avatar_url} size="lg" /> : <div className="rounded-2xl bg-cyan-200/12 p-3 text-cyan-100"><BookOpen className="h-7 w-7" /></div>}
-          <div className="min-w-0 flex-1">
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-fuchsia-100/65">AudiVerse Social</p>
-            <h1 className="text-2xl font-black tracking-[-0.04em] text-white" data-testid="text-social-title">{title}</h1>
-            <p className="mt-1 max-w-lg text-xs leading-5 text-white/55" data-testid="text-social-subtitle">{subtitle}</p>
-          </div>
-        </div>
-        {mode === "profile" && !owner && user?.id && targetId && (
-          <div className="relative mt-4 flex flex-wrap gap-2">
-            {!isPrivate && (
-              <button type="button" onClick={() => toggleFollow.mutate()} disabled={toggleFollow.isPending} className={`${softButton} ${followQuery.data ? "border-fuchsia-200/35 bg-fuchsia-200/15 text-fuchsia-100" : ""}`} data-testid="button-follow-profile">
-                {toggleFollow.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : followQuery.data ? <Check className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-                {followQuery.data ? "Suscrito" : "Suscribirse"}
-              </button>
-            )}
-            {isPrivate && (
-              <button type="button" onClick={() => requestAccess.mutate()} disabled={requestAccess.isPending || accessQuery.data === "pending"} className={`${softButton} border-amber-200/25 text-amber-100`} data-testid="button-request-profile-access">
-                {requestAccess.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : accessQuery.data === "pending" ? <Clock3 className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
-                {accessQuery.data === "pending" ? "Solicitud pendiente" : "Solicitar acceso"}
-              </button>
-            )}
-          </div>
-        )}
-      </header>
-
-      {mode === "profile" && owner && user?.id && <CreatePostForm userId={user.id} onCreated={refreshSocial} />}
-
-      {mode === "profile" && owner && incomingRequestsQuery.data?.length ? (
-        <div className={`${glassCard} space-y-3 p-4`} data-testid="panel-access-requests">
+    <section className="space-y-6" data-testid="social-posts-section">
+      {mode === "profile" && (
+        <div className={`${glassCard} flex items-center justify-between p-5`}>
           <div>
-            <h2 className="text-sm font-bold text-white">Solicitudes de acceso</h2>
-            <p className="mt-1 text-xs text-white/45">Decide quién puede ver tus publicaciones para seguidores.</p>
+            <h2 className="text-base font-bold text-white">Publicaciones de {profileName || "Usuario"}</h2>
+            <p className="text-xs text-white/50">Actividad literaria y aportes en la comunidad.</p>
           </div>
-          <div className="space-y-2">
-            {incomingRequestsQuery.data.map((request: { id: string; requester_id: string }) => (
-              <div key={request.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] p-3">
-                <Avatar name={`Lector ${request.requester_id.slice(0, 6)}`} size="sm" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-white">Solicitud de lector</p>
-                  <p className="truncate text-[10px] text-white/40">{request.requester_id}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => answerAccessRequest.mutate({ id: request.id, status: "accepted" })}
-                  disabled={answerAccessRequest.isPending}
-                  className="rounded-lg bg-emerald-300/15 p-2 text-emerald-100 hover:bg-emerald-300/25 disabled:opacity-40"
-                  aria-label="Aceptar solicitud"
-                >
-                  <Check className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => answerAccessRequest.mutate({ id: request.id, status: "rejected" })}
-                  disabled={answerAccessRequest.isPending}
-                  className="rounded-lg bg-rose-300/15 px-2.5 py-2 text-[10px] font-semibold text-rose-100 hover:bg-rose-300/25 disabled:opacity-40"
-                >
-                  Rechazar
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      {mode === "profile" && isPrivate && !owner ? (
-        <div className={`${glassCard} p-8 text-center`} data-testid="empty-private-profile">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-200/10 text-amber-100"><Lock className="h-7 w-7" /></div>
-          <h2 className="text-base font-bold text-white">Perfil privado</h2>
-          <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-white/50">Solicita acceso para ver las publicaciones de {title}.</p>
-        </div>
-      ) : postsQuery.isLoading ? (
-        <div className="space-y-4" aria-label="Cargando publicaciones" data-testid="status-posts-loading">
-          {[1, 2].map((item) => <div key={item} className={`${glassCard} h-72 animate-pulse bg-white/[0.04]`} />)}
-        </div>
-      ) : postsQuery.isError ? (
-        <div className={`${glassCard} p-7 text-center`} data-testid="status-posts-error">
-          <ShieldAlert className="mx-auto mb-3 h-8 w-8 text-rose-200" />
-          <p className="text-sm font-semibold text-white">No pudimos cargar las publicaciones.</p>
-          <p className="mt-1 text-xs text-white/45">Comprueba tu conexión e inténtalo de nuevo.</p>
-          <button type="button" onClick={() => postsQuery.refetch()} className={`${softButton} mt-4`} data-testid="button-retry-posts">Reintentar</button>
-        </div>
-      ) : !postsQuery.data?.posts.length ? (
-        <div className={`${glassCard} p-8 text-center`} data-testid="empty-social-posts">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-fuchsia-200/10 text-fuchsia-100"><MessageCircle className="h-7 w-7" /></div>
-          <h2 className="text-base font-bold text-white">{mode === "profile" ? "Todavía no hay publicaciones" : "El pulso está tranquilo"}</h2>
-          <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-white/45">{owner ? "Publica una recomendación para comenzar tu historia social." : "Vuelve pronto para descubrir nuevas publicaciones y libros."}</p>
-          {owner && <button type="button" onClick={() => document.querySelector('[data-testid="input-post-title"]')?.scrollIntoView({ behavior: "smooth", block: "center" })} className={`${softButton} mt-4 border-fuchsia-200/25 text-fuchsia-100`} data-testid="button-start-post"><Plus className="h-4 w-4" /> Crear publicación</button>}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {postsQuery.data.posts.map((post) => (
-            <PostCard key={post.id} post={post} author={post.author_id ? authorsById.get(post.author_id) : undefined} currentUserId={user?.id} onRefresh={refreshSocial} />
-          ))}
+          {isOwner && user && (
+            <button type="button" onClick={() => setIsCreateModalOpen(true)} className={softButton} data-testid="button-open-create-modal">
+              <Plus className="h-4 w-4 text-fuchsia-200" /> Crear post
+            </button>
+          )}
         </div>
       )}
+
+      {mode === "feed" && user && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setIsCreateModalOpen(true)}
+            className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.07] px-4 py-2.5 text-xs font-semibold text-white/80 transition hover:bg-white/[0.13]"
+            data-testid="button-start-post"
+          >
+            <Plus className="h-4 w-4 text-fuchsia-200" /> Crear publicación
+          </button>
+        </div>
+      )}
+
+      <div className="space-y-4">
+        {postsQuery.isLoading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className={`${glassCard} h-48 animate-pulse p-4`} />
+          ))
+        ) : postsQuery.isError ? (
+          <div className={`${glassCard} p-6 text-center text-xs text-rose-200`}>
+            No se pudieron cargar las publicaciones.
+          </div>
+        ) : postsQuery.data?.length ? (
+          postsQuery.data.map((post) => (
+            <PostCard
+              key={post.id}
+              post={post}
+              author={post.author_id && authorsById?.get ? authorsById.get(post.author_id) : undefined}
+              currentUserId={user?.id}
+              onRefresh={refreshSocial}
+            />
+          ))
+        ) : (
+          <div className={`${glassCard} p-8 text-center text-xs text-white/50`}>
+            No hay publicaciones todavía.
+          </div>
+        )}
+      </div>
+
       {onGoToVip && mode === "feed" && (
-        <button type="button" onClick={onGoToVip} className="mx-auto flex items-center gap-2 text-xs text-fuchsia-100/55 transition hover:text-fuchsia-100" data-testid="button-social-vip">
+        <button
+          type="button"
+          onClick={onGoToVip}
+          className="mx-auto flex items-center gap-2 text-xs text-fuchsia-100/55 transition hover:text-fuchsia-100"
+          data-testid="button-social-vip"
+        >
           <Star className="h-3.5 w-3.5" /> Descubre más con AudiVerse VIP
         </button>
       )}
+
+      <CreatePostModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => {
+          setIsCreateModalOpen(false);
+          refreshSocial();
+        }}
+        currentUserId={user?.id}
+      />
     </section>
   );
 }

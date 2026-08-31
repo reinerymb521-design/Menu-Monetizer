@@ -24,6 +24,7 @@ const visibilityOptions: Array<{
 ];
 
 const db = supabase as any;
+const SOCIAL_POSTS_BUCKET = "Social posts";
 
 function safeExtension(file: File, fallback: string) {
   const extension = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -77,17 +78,17 @@ export function CreatePostModal({
 
       if (coverFile) {
         const path = `${currentUserId}/social-cover-${uniqueId}.${safeExtension(coverFile, "jpg")}`;
-        const { error } = await supabase.storage.from("book-covers").upload(path, coverFile, {
+        const { error } = await supabase.storage.from(SOCIAL_POSTS_BUCKET).upload(path, coverFile, {
           contentType: coverFile.type,
           upsert: false,
         });
         if (error) throw error;
-        coverUrl = supabase.storage.from("book-covers").getPublicUrl(path).data.publicUrl;
+        coverUrl = supabase.storage.from(SOCIAL_POSTS_BUCKET).getPublicUrl(path).data.publicUrl;
       }
 
       if (bookFile) {
         const path = `${currentUserId}/social-book-${uniqueId}.${safeExtension(bookFile, "pdf")}`;
-        const { error } = await supabase.storage.from("book-files").upload(path, bookFile, {
+        const { error } = await supabase.storage.from(SOCIAL_POSTS_BUCKET).upload(path, bookFile, {
           contentType: "application/pdf",
           upsert: false,
         });

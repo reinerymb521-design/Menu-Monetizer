@@ -441,7 +441,7 @@ function LibroForm({ libro, onClose }: { libro: any; onClose: () => void }) {
             <img src={form.url_portada} alt="portada" className="w-full h-24 object-cover rounded-lg border border-white/10" />
           )}
           <input ref={coverRef} type="file" accept="image/*" className="hidden"
-            onChange={e => e.target.files?.[0] && uploadFile(e.target.files[0], "book-covers", "url_portada", setUpCover)} />
+             onChange={e => e.target.files?.[0] && uploadFile(e.target.files[0], "portada", "url_portada", setUpCover)} />
         </div>
 
         {/* PDF */}
@@ -459,7 +459,7 @@ function LibroForm({ libro, onClose }: { libro: any; onClose: () => void }) {
             </div>
           )}
           <input ref={pdfRef} type="file" accept="application/pdf" className="hidden"
-            onChange={e => e.target.files?.[0] && uploadFile(e.target.files[0], "books-pdf", "URL_PDF", setUpPdf)} />
+             onChange={e => e.target.files?.[0] && uploadFile(e.target.files[0], "Libros", "URL_PDF", setUpPdf)} />
         </div>
       </div>
 

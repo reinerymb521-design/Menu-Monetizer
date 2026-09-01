@@ -24,7 +24,7 @@ const visibilityOptions: Array<{
 ];
 
 const db = supabase as any;
-const SOCIAL_POSTS_BUCKET = "Social posts";
+const SOCIAL_POSTS_BUCKET = "Sosial posts";
 
 function safeExtension(file: File, fallback: string) {
   const extension = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "");

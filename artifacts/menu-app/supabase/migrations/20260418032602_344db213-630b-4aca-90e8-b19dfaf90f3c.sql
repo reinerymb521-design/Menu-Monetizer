@@ -1,43 +1,43 @@
 
 -- Storage buckets for book assets
-INSERT INTO storage.buckets (id, name, public) VALUES ('book-covers', 'book-covers', true)
+INSERT INTO storage.buckets (id, name, public) VALUES ('portada', 'portada', true)
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO storage.buckets (id, name, public) VALUES ('book-files', 'book-files', true)
+INSERT INTO storage.buckets (id, name, public) VALUES ('Libros', 'Libros', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Public read for both buckets
 CREATE POLICY "Public can view book covers"
 ON storage.objects FOR SELECT
-USING (bucket_id = 'book-covers');
+USING (bucket_id = 'portada');
 
 CREATE POLICY "Public can view book files"
 ON storage.objects FOR SELECT
-USING (bucket_id = 'book-files');
+USING (bucket_id = 'Libros');
 
 -- Admins can write (insert/update/delete) to both buckets
 CREATE POLICY "Admins can upload book covers"
 ON storage.objects FOR INSERT
-WITH CHECK (bucket_id = 'book-covers' AND public.has_role(auth.uid(), 'admin'));
+WITH CHECK (bucket_id = 'portada' AND public.has_role(auth.uid(), 'admin'));
 
 CREATE POLICY "Admins can update book covers"
 ON storage.objects FOR UPDATE
-USING (bucket_id = 'book-covers' AND public.has_role(auth.uid(), 'admin'));
+USING (bucket_id = 'portada' AND public.has_role(auth.uid(), 'admin'));
 
 CREATE POLICY "Admins can delete book covers"
 ON storage.objects FOR DELETE
-USING (bucket_id = 'book-covers' AND public.has_role(auth.uid(), 'admin'));
+USING (bucket_id = 'portada' AND public.has_role(auth.uid(), 'admin'));
 
 CREATE POLICY "Admins can upload book files"
 ON storage.objects FOR INSERT
-WITH CHECK (bucket_id = 'book-files' AND public.has_role(auth.uid(), 'admin'));
+WITH CHECK (bucket_id = 'Libros' AND public.has_role(auth.uid(), 'admin'));
 
 CREATE POLICY "Admins can update book files"
 ON storage.objects FOR UPDATE
-USING (bucket_id = 'book-files' AND public.has_role(auth.uid(), 'admin'));
+USING (bucket_id = 'Libros' AND public.has_role(auth.uid(), 'admin'));
 
 CREATE POLICY "Admins can delete book files"
 ON storage.objects FOR DELETE
-USING (bucket_id = 'book-files' AND public.has_role(auth.uid(), 'admin'));
+USING (bucket_id = 'Libros' AND public.has_role(auth.uid(), 'admin'));
 
 -- Admin management on user_roles
 CREATE POLICY "Admins can view all roles"

@@ -2,7 +2,7 @@
 -- Social uploads are owner-prefixed; library uploads remain administrator-only.
 
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('Social posts', 'Social posts', true)
+VALUES ('Sosial posts', 'Sosial posts', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
 
 INSERT INTO storage.buckets (id, name, public)
@@ -17,7 +17,7 @@ DROP POLICY IF EXISTS "AudiVerse users upload social covers" ON storage.objects;
 CREATE POLICY "AudiVerse users upload social covers"
   ON storage.objects FOR INSERT TO authenticated
   WITH CHECK (
-    bucket_id = 'Social posts'
+    bucket_id = 'Sosial posts'
     AND name LIKE (auth.uid()::text || '/%')
   );
 
@@ -25,7 +25,7 @@ DROP POLICY IF EXISTS "AudiVerse users upload social books" ON storage.objects;
 CREATE POLICY "AudiVerse users upload social books"
   ON storage.objects FOR INSERT TO authenticated
   WITH CHECK (
-    bucket_id = 'Social posts'
+    bucket_id = 'Sosial posts'
     AND name LIKE (auth.uid()::text || '/%')
   );
 
@@ -33,11 +33,11 @@ DROP POLICY IF EXISTS "AudiVerse users update social covers" ON storage.objects;
 CREATE POLICY "AudiVerse users update social covers"
   ON storage.objects FOR UPDATE TO authenticated
   USING (
-    bucket_id = 'Social posts'
+    bucket_id = 'Sosial posts'
     AND name LIKE (auth.uid()::text || '/%')
   )
   WITH CHECK (
-    bucket_id = 'Social posts'
+    bucket_id = 'Sosial posts'
     AND name LIKE (auth.uid()::text || '/%')
   );
 
@@ -45,7 +45,7 @@ DROP POLICY IF EXISTS "AudiVerse users delete social covers" ON storage.objects;
 CREATE POLICY "AudiVerse users delete social covers"
   ON storage.objects FOR DELETE TO authenticated
   USING (
-    bucket_id = 'Social posts'
+    bucket_id = 'Sosial posts'
     AND name LIKE (auth.uid()::text || '/%')
   );
 
@@ -53,11 +53,11 @@ DROP POLICY IF EXISTS "AudiVerse users update social books" ON storage.objects;
 CREATE POLICY "AudiVerse users update social books"
   ON storage.objects FOR UPDATE TO authenticated
   USING (
-    bucket_id = 'Social posts'
+    bucket_id = 'Sosial posts'
     AND name LIKE (auth.uid()::text || '/%')
   )
   WITH CHECK (
-    bucket_id = 'Social posts'
+    bucket_id = 'Sosial posts'
     AND name LIKE (auth.uid()::text || '/%')
   );
 
@@ -65,14 +65,14 @@ DROP POLICY IF EXISTS "AudiVerse users delete social books" ON storage.objects;
 CREATE POLICY "AudiVerse users delete social books"
   ON storage.objects FOR DELETE TO authenticated
   USING (
-    bucket_id = 'Social posts'
+    bucket_id = 'Sosial posts'
     AND name LIKE (auth.uid()::text || '/%')
   );
 
 DROP POLICY IF EXISTS "AudiVerse public can view social posts" ON storage.objects;
 CREATE POLICY "AudiVerse public can view social posts"
   ON storage.objects FOR SELECT
-  USING (bucket_id = 'Social posts');
+  USING (bucket_id = 'Sosial posts');
 
 DROP POLICY IF EXISTS "AudiVerse admins upload portada" ON storage.objects;
 CREATE POLICY "AudiVerse admins upload portada"

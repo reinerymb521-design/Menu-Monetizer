@@ -262,19 +262,19 @@ WHERE NOT EXISTS (
 DROP POLICY IF EXISTS "AudiVerse users upload social covers" ON storage.objects;
 CREATE POLICY "AudiVerse users upload social covers"
   ON storage.objects FOR INSERT TO authenticated
-  WITH CHECK (bucket_id = 'book-covers' AND name LIKE (auth.uid()::text || '/%'));
+  WITH CHECK (bucket_id = 'Sosial posts' AND name LIKE (auth.uid()::text || '/%'));
 
 DROP POLICY IF EXISTS "AudiVerse users upload social books" ON storage.objects;
 CREATE POLICY "AudiVerse users upload social books"
   ON storage.objects FOR INSERT TO authenticated
-  WITH CHECK (bucket_id = 'book-files' AND name LIKE (auth.uid()::text || '/%'));
+  WITH CHECK (bucket_id = 'Sosial posts' AND name LIKE (auth.uid()::text || '/%'));
 
 DROP POLICY IF EXISTS "AudiVerse users update social covers" ON storage.objects;
 CREATE POLICY "AudiVerse users update social covers"
   ON storage.objects FOR UPDATE TO authenticated
-  USING (bucket_id = 'book-covers' AND name LIKE (auth.uid()::text || '/%'));
+  USING (bucket_id = 'Sosial posts' AND name LIKE (auth.uid()::text || '/%'));
 
 DROP POLICY IF EXISTS "AudiVerse users delete social covers" ON storage.objects;
 CREATE POLICY "AudiVerse users delete social covers"
   ON storage.objects FOR DELETE TO authenticated
-  USING (bucket_id = 'book-covers' AND name LIKE (auth.uid()::text || '/%'));
+  USING (bucket_id = 'Sosial posts' AND name LIKE (auth.uid()::text || '/%'));

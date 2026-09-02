@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { CreatePostModal } from "./CreatePostModal";
+import { STORAGE_BUCKETS } from "@/lib/storageBuckets";
 import {
   BookOpen,
   Check,
@@ -37,10 +38,14 @@ type Visibility = "public" | "followers" | "private";
 
 type SocialPost = {
   id: string;
+  user_id: string | null;
   author_id: string | null;
+  contenido: string | null;
   title: string;
   description: string | null;
   cover_url: string | null;
+  cover_path: string | null;
+  pdf_url: string | null;
   book_path: string | null;
   visibility: Visibility;
   is_official: boolean;
@@ -347,12 +352,12 @@ function PostCard({
         <h3 className="text-lg font-bold tracking-[-0.02em] text-white" data-testid={`text-post-title-${post.id}`}>
           {post.title}
         </h3>
-        {post.description && (
+         {(post.description || post.contenido) && (
           <p className="whitespace-pre-wrap text-sm leading-6 text-white/65" data-testid={`text-post-description-${post.id}`}>
-            {post.description}
+             {post.description || post.contenido}
           </p>
         )}
-        {post.book_path && (
+        {(post.book_path || post.pdf_url) && (
           <div className="inline-flex items-center gap-2 rounded-xl border border-fuchsia-200/15 bg-fuchsia-200/[0.07] px-3 py-2 text-xs text-fuchsia-100/80">
             <FileText className="h-4 w-4" /> PDF disponible en AudiVerse
           </div>
@@ -483,16 +488,46 @@ export default function SocialPostsSection({
     queryFn: async () => {
       let query = db
         .from("social_posts")
-        .select("id,author_id,title,description,cover_url,book_path,visibility,is_official,official_label,like_count,comment_count,share_count,created_at")
+        .select("id,user_id,author_id,contenido,title,description,visibility,cover_url,pdf_url,book_path,cover_path,created_at")
         .order("created_at", { ascending: false });
 
       if (mode === "profile" && profileUserId) {
-        query = query.eq("author_id", profileUserId);
+        query = query.or(`author_id.eq.${profileUserId},user_id.eq.${profileUserId}`);
       }
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as SocialPost[];
+
+      return (data || []).map((row: any) => {
+        const isOfficial = !row.author_id && !row.user_id;
+        const coverUrl =
+          row.cover_url ||
+          (row.cover_path
+            ? db.storage.from(STORAGE_BUCKETS.socialPosts).getPublicUrl(row.cover_path).data.publicUrl
+            : null);
+
+        return {
+          id: row.id,
+          user_id: row.user_id ?? null,
+          author_id: row.author_id ?? row.user_id ?? null,
+          contenido: row.contenido ?? null,
+          title: row.title || "Publicación sin título",
+          description: row.description ?? null,
+          cover_url: coverUrl,
+          cover_path: row.cover_path ?? null,
+          pdf_url: row.pdf_url ?? null,
+          book_path: row.book_path ?? null,
+          visibility: (row.visibility === "followers" || row.visibility === "private"
+            ? row.visibility
+            : "public") as Visibility,
+          is_official: isOfficial,
+          official_label: isOfficial ? "Equipo AudiVerse" : null,
+          like_count: 0,
+          comment_count: 0,
+          share_count: 0,
+          created_at: row.created_at,
+        } satisfies SocialPost;
+      });
     },
   });
 
@@ -500,7 +535,13 @@ export default function SocialPostsSection({
     queryKey: ["social-posts-authors", postsQuery.data],
     queryFn: async () => {
       const posts = postsQuery.data || [];
-      const ids = Array.from(new Set(posts.map((p) => p.author_id).filter(Boolean)));
+      const ids = Array.from(
+        new Set(
+          posts
+            .map((p: SocialPost) => p.author_id)
+            .filter((id: string | null): id is string => Boolean(id)),
+        ),
+      );
       if (!ids.length) return new Map<string, Profile>();
 
       const { data, error } = await db
@@ -563,7 +604,7 @@ export default function SocialPostsSection({
             No se pudieron cargar las publicaciones.
           </div>
         ) : postsQuery.data?.length ? (
-          postsQuery.data.map((post) => (
+          postsQuery.data.map((post: SocialPost) => (
             <PostCard
               key={post.id}
               post={post}

@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Globe2, Loader2, Lock, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { STORAGE_BUCKETS } from "@/lib/storageBuckets";
 
 type Visibility = "public" | "followers" | "private";
 
@@ -24,7 +25,6 @@ const visibilityOptions: Array<{
 ];
 
 const db = supabase as any;
-const SOCIAL_POSTS_BUCKET = "Sosial posts";
 
 function safeExtension(file: File, fallback: string) {
   const extension = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -73,38 +73,44 @@ export function CreatePostModal({
     setIsSaving(true);
     try {
       let coverUrl: string | null = null;
+      let coverPath: string | null = null;
+      let pdfUrl: string | null = null;
       let bookPath: string | null = null;
       const uniqueId = `${Date.now()}-${crypto.randomUUID()}`;
 
       if (coverFile) {
         const path = `${currentUserId}/social-cover-${uniqueId}.${safeExtension(coverFile, "jpg")}`;
-        const { error } = await supabase.storage.from(SOCIAL_POSTS_BUCKET).upload(path, coverFile, {
+        const { error } = await supabase.storage.from(STORAGE_BUCKETS.socialPosts).upload(path, coverFile, {
           contentType: coverFile.type,
           upsert: false,
         });
         if (error) throw error;
-        coverUrl = supabase.storage.from(SOCIAL_POSTS_BUCKET).getPublicUrl(path).data.publicUrl;
+        coverPath = path;
+        coverUrl = supabase.storage.from(STORAGE_BUCKETS.socialPosts).getPublicUrl(path).data.publicUrl;
       }
 
       if (bookFile) {
         const path = `${currentUserId}/social-book-${uniqueId}.${safeExtension(bookFile, "pdf")}`;
-        const { error } = await supabase.storage.from(SOCIAL_POSTS_BUCKET).upload(path, bookFile, {
+        const { error } = await supabase.storage.from(STORAGE_BUCKETS.socialPosts).upload(path, bookFile, {
           contentType: "application/pdf",
           upsert: false,
         });
         if (error) throw error;
         bookPath = path;
+        pdfUrl = supabase.storage.from(STORAGE_BUCKETS.socialPosts).getPublicUrl(path).data.publicUrl;
       }
 
       const { error } = await db.from("social_posts").insert({
+        user_id: currentUserId,
         author_id: currentUserId,
         title: cleanTitle,
+        contenido: description.trim() || cleanTitle,
         description: description.trim() || null,
         cover_url: coverUrl,
+        cover_path: coverPath,
+        pdf_url: pdfUrl,
         book_path: bookPath,
         visibility,
-        is_official: false,
-        official_label: null,
       });
       if (error) throw error;
 

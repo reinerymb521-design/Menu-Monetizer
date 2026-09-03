@@ -43,17 +43,9 @@ export default function AdminVerificationModal({
 
     setVerifying(true);
     try {
-      // Primera barrera: el usuario autenticado debe tener el rol de admin en la tabla perfiles.
-      const { data: profile, error: profileError } = await (supabase as any)
-        .from("perfiles")
-        .select("es_admin, es_administrador")
-        .or(`id.eq.${user.id},user_id.eq.${user.id}`)
-        .limit(1)
-        .maybeSingle();
-
-      if (profileError) throw profileError;
-      const profileIsAdmin = Boolean(profile?.es_admin || profile?.es_administrador);
-      if (!isAdmin || !profileIsAdmin) {
+      // Primera barrera: el contexto ya validó el rol en Supabase.
+      // La RPC vuelve a comprobarlo antes de comparar la contraseña.
+      if (!isAdmin) {
         toast.error("No tienes permiso para entrar al panel.");
         return;
       }

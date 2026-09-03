@@ -51,8 +51,12 @@ function rowToProfile(row: any, roleIsAdmin = false): ProfileData {
   };
 }
 
-/* Columnas a seleccionar — nunca incluimos "user_id" (no existe) */
-const PERFIL_COLS = "id, user_id, correo_electronico, email, avatar_url, es_premium, es_admin, es_administrador, perfil_publico";
+/*
+ * Keep this query limited to columns present in the Spanish production table.
+ * Optional profile fields are still supported by rowToProfile when they exist,
+ * but requesting them here would make the whole query fail on older schemas.
+ */
+const PERFIL_ADMIN_COLS = "id, correo_electronico, es_admin";
 
 /**
  * Carga el perfil.
@@ -60,43 +64,47 @@ const PERFIL_COLS = "id, user_id, correo_electronico, email, avatar_url, es_prem
  * Preferencia: fila con es_admin=true > fila con es_premium=true > primera fila.
  */
 async function loadPerfil(user: User): Promise<ProfileData | null> {
-  /* Reúne TODAS las filas que coincidan por id o por correo */
+  /* Reúne las filas que coincidan por id o por correo. */
   const results: any[] = [];
 
-  const { data: byId } = await supabase
-    .from("perfiles")
-    .select(PERFIL_COLS)
+  const { data: byId, error: byIdError } = await (supabase.from("perfiles") as any)
+    .select(PERFIL_ADMIN_COLS)
     .eq("id", user.id);
+  if (byIdError) {
+    console.warn("[auth] perfil lookup by id:", byIdError.message);
+  }
   if (byId) results.push(...byId);
 
-      if (user.email) {
-      const { data: byEmail } = await (supabase.from("perfiles") as any)
-        .select(PERFIL_COLS)
-        .eq("correo_electronico", user.email);
-        
-
+  if (user.email) {
+    const { data: byEmail, error: byEmailError } = await (supabase.from("perfiles") as any)
+      .select(PERFIL_ADMIN_COLS)
+      .eq("correo_electronico", user.email);
+    if (byEmailError) {
+      console.warn("[auth] perfil lookup by email:", byEmailError.message);
+    }
     if (byEmail) {
-      /* Agrega solo las filas que no estén ya en results (evita duplicados) */
+      /* Agrega solo las filas que no estén ya en results. */
       for (const row of byEmail) {
         if (!results.find((r) => r.id === row.id)) results.push(row);
       }
     }
   }
 
-  if (results.length === 0) return null;
-
-  /* Elige la mejor fila: admin > premium > primera */
-  const best =
-    results.find((r) => r.es_admin || r.es_administrador) ??
-    results.find((r) => r.es_premium) ??
-    results[0];
-
+  /* Consulta el rol por separado para que un perfil incompleto no oculte a un admin. */
   const { data: roles } = await (supabase as any)
     .from("user_roles")
     .select("role")
     .eq("user_id", user.id);
   const roleIsAdmin = Boolean(roles?.some((role: { role: string }) => role.role === "admin"));
 
+  if (results.length === 0) {
+    return roleIsAdmin
+      ? rowToProfile({ correo_electronico: user.email }, true)
+      : null;
+  }
+
+  /* Una fila marcada como admin siempre tiene prioridad. */
+  const best = results.find((r) => r.es_admin || r.es_administrador) ?? results[0];
   return rowToProfile(best, roleIsAdmin);
 }
 
@@ -108,11 +116,7 @@ async function loadPerfil(user: User): Promise<ProfileData | null> {
       {
         id: user.id,
         correo_electronico: user.email ?? null,
-        avatar_url: user.user_metadata?.avatar_url ?? null,
-        es_premium: false,
         es_admin: false,
-        es_administrador: false,
-        perfil_publico: true,
       },
       { onConflict: "id" }
     );

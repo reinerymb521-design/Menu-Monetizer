@@ -11,12 +11,14 @@ AS $$
 DECLARE
   current_user_id UUID := auth.uid();
   has_user_id BOOLEAN;
+  has_email BOOLEAN;
   has_es_admin BOOLEAN;
   has_es_administrador BOOLEAN;
   identity_filter TEXT;
   admin_filter TEXT;
   profile_is_admin BOOLEAN := false;
   role_is_admin BOOLEAN := false;
+  current_email TEXT := lower(trim(COALESCE(auth.jwt() ->> 'email', '')));
 BEGIN
   IF current_user_id IS NULL THEN
     RETURN false;
@@ -36,6 +38,14 @@ BEGIN
       FROM information_schema.columns
       WHERE table_schema = 'public'
         AND table_name = 'perfiles'
+        AND column_name = 'correo_electronico'
+    ) INTO has_email;
+
+    SELECT EXISTS (
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'perfiles'
         AND column_name = 'es_admin'
     ) INTO has_es_admin;
 
@@ -47,11 +57,6 @@ BEGIN
         AND column_name = 'es_administrador'
     ) INTO has_es_administrador;
 
-    identity_filter := CASE
-      WHEN has_user_id THEN '(id = $1 OR user_id = $1)'
-      ELSE 'id = $1'
-    END;
-
     admin_filter := concat_ws(
       ' OR ',
       CASE WHEN has_es_admin THEN 'COALESCE(es_admin, false)' END,
@@ -59,16 +64,46 @@ BEGIN
     );
 
     IF admin_filter <> '' THEN
-      EXECUTE format(
-        'SELECT EXISTS (
-           SELECT 1 FROM public.perfiles
-           WHERE %s AND (%s)
-         )',
-        identity_filter,
-        admin_filter
-      )
-      INTO profile_is_admin
-      USING current_user_id;
+      IF has_email AND has_user_id THEN
+        identity_filter := '(id = $1 OR user_id = $1 OR lower(trim(correo_electronico)) = $2)';
+        EXECUTE format(
+          'SELECT EXISTS (
+             SELECT 1 FROM public.perfiles
+             WHERE %s AND (%s)
+           )',
+          identity_filter,
+          admin_filter
+        )
+        INTO profile_is_admin
+        USING current_user_id, current_email;
+      ELSIF has_email THEN
+        identity_filter := '(id = $1 OR lower(trim(correo_electronico)) = $2)';
+        EXECUTE format(
+          'SELECT EXISTS (
+             SELECT 1 FROM public.perfiles
+             WHERE %s AND (%s)
+           )',
+          identity_filter,
+          admin_filter
+        )
+        INTO profile_is_admin
+        USING current_user_id, current_email;
+      ELSE
+        identity_filter := CASE
+          WHEN has_user_id THEN '(id = $1 OR user_id = $1)'
+          ELSE 'id = $1'
+        END;
+        EXECUTE format(
+          'SELECT EXISTS (
+             SELECT 1 FROM public.perfiles
+             WHERE %s AND (%s)
+           )',
+          identity_filter,
+          admin_filter
+        )
+        INTO profile_is_admin
+        USING current_user_id;
+      END IF;
     END IF;
   END IF;
 

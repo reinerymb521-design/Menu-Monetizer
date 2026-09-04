@@ -79,14 +79,6 @@ async function loadPerfil(user: User): Promise<ProfileData | null> {
   }
   const functionIsAdmin = serverAdmin === true;
 
-  const { data: byId, error: byIdError } = await (supabase.from("perfiles") as any)
-    .select(PERFIL_ADMIN_COLS)
-    .eq("id", user.id);
-  if (byIdError) {
-    console.warn("[auth] perfil lookup by id:", byIdError.message);
-  }
-  if (byId) results.push(...byId);
-
   if (user.email) {
     const { data: byEmail, error: byEmailError } = await (supabase.from("perfiles") as any)
       .select(PERFIL_ADMIN_COLS)
@@ -100,6 +92,16 @@ async function loadPerfil(user: User): Promise<ProfileData | null> {
         if (!results.find((r) => r.id === row.id)) results.push(row);
       }
     }
+  }
+
+  if (results.length === 0) {
+    const { data: byId, error: byIdError } = await (supabase.from("perfiles") as any)
+      .select(PERFIL_ADMIN_COLS)
+      .eq("id", user.id);
+    if (byIdError) {
+      console.warn("[auth] perfil lookup by id:", byIdError.message);
+    }
+    if (byId) results.push(...byId);
   }
 
   /* Consulta el rol por separado para que un perfil incompleto no oculte a un admin. */

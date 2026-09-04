@@ -67,6 +67,18 @@ async function loadPerfil(user: User): Promise<ProfileData | null> {
   /* Reúne las filas que coincidan por id o por correo. */
   const results: any[] = [];
 
+  /*
+   * La función vive en Supabase y aplica la misma regla de administrador
+   * usando SECURITY DEFINER. Es importante consultarla aunque RLS no permita
+   * leer la fila completa de perfiles.
+   */
+  const { data: serverAdmin, error: serverAdminError } = await (supabase as any)
+    .rpc("is_audiverse_admin");
+  if (serverAdminError) {
+    console.warn("[auth] admin RPC lookup:", serverAdminError.message);
+  }
+  const functionIsAdmin = serverAdmin === true;
+
   const { data: byId, error: byIdError } = await (supabase.from("perfiles") as any)
     .select(PERFIL_ADMIN_COLS)
     .eq("id", user.id);
@@ -95,7 +107,9 @@ async function loadPerfil(user: User): Promise<ProfileData | null> {
     .from("user_roles")
     .select("role")
     .eq("user_id", user.id);
-  const roleIsAdmin = Boolean(roles?.some((role: { role: string }) => role.role === "admin"));
+  const roleIsAdmin =
+    functionIsAdmin ||
+    Boolean(roles?.some((role: { role: string }) => role.role === "admin"));
 
   if (results.length === 0) {
     return roleIsAdmin

@@ -48,7 +48,7 @@ export default function AppLayout() {
     { id: "inicio", icon: Home, label: "Inicio" },
     { id: "comunidad", icon: Users, label: "Comunidad" },
     { id: "vip", icon: Crown, label: "VIP" },
-    { id: "admin", icon: Shield, label: "Admin", show: isAdmin },
+    { id: "admin", icon: Shield, label: "Admin", show: isAdmin === true },
     { id: "perfil", icon: User, label: "Perfil" },
   ];
 

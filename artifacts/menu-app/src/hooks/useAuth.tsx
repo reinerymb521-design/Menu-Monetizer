@@ -64,8 +64,32 @@ const PERFIL_ADMIN_COLS = "id, correo_electronico, es_admin";
  * Preferencia: fila con es_admin=true > fila con es_premium=true > primera fila.
  */
 async function loadPerfil(user: User): Promise<ProfileData | null> {
-  /* Reúne las filas que coincidan por id o por correo. */
+  /* La fila por id es la fuente principal: id = auth.uid(). */
   const results: any[] = [];
+
+  const { data: byId, error: byIdError } = await (supabase.from("perfiles") as any)
+    .select(PERFIL_ADMIN_COLS)
+    .eq("id", user.id)
+    .limit(1);
+  if (byIdError) {
+    console.warn("[auth] perfil lookup by id:", byIdError.message);
+  }
+  if (byId?.[0]) results.push(byId[0]);
+
+  /*
+   * Compatibilidad para instalaciones antiguas: solo se usa si no existe
+   * la fila asociada directamente con auth.uid().
+   */
+  if (results.length === 0 && user.email) {
+    const { data: byEmail, error: byEmailError } = await (supabase.from("perfiles") as any)
+      .select(PERFIL_ADMIN_COLS)
+      .eq("correo_electronico", user.email)
+      .limit(1);
+    if (byEmailError) {
+      console.warn("[auth] perfil lookup by email:", byEmailError.message);
+    }
+    if (byEmail?.[0]) results.push(byEmail[0]);
+  }
 
   /*
    * La función vive en Supabase y aplica la misma regla de administrador
@@ -78,31 +102,6 @@ async function loadPerfil(user: User): Promise<ProfileData | null> {
     console.warn("[auth] admin RPC lookup:", serverAdminError.message);
   }
   const functionIsAdmin = serverAdmin === true;
-
-  if (user.email) {
-    const { data: byEmail, error: byEmailError } = await (supabase.from("perfiles") as any)
-      .select(PERFIL_ADMIN_COLS)
-      .eq("correo_electronico", user.email);
-    if (byEmailError) {
-      console.warn("[auth] perfil lookup by email:", byEmailError.message);
-    }
-    if (byEmail) {
-      /* Agrega solo las filas que no estén ya en results. */
-      for (const row of byEmail) {
-        if (!results.find((r) => r.id === row.id)) results.push(row);
-      }
-    }
-  }
-
-  if (results.length === 0) {
-    const { data: byId, error: byIdError } = await (supabase.from("perfiles") as any)
-      .select(PERFIL_ADMIN_COLS)
-      .eq("id", user.id);
-    if (byIdError) {
-      console.warn("[auth] perfil lookup by id:", byIdError.message);
-    }
-    if (byId) results.push(...byId);
-  }
 
   /* Consulta el rol por separado para que un perfil incompleto no oculte a un admin. */
   const { data: roles } = await (supabase as any)

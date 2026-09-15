@@ -22,6 +22,8 @@ import {
   Share2,
   Star,
   Users,
+  UserCheck,
+  UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -138,6 +140,107 @@ function VisibilityIcon({ visibility }: { visibility: Visibility }) {
 
 function starsFor(rating: number) {
   return Array.from({ length: 5 }, (_, index) => index < rating);
+}
+
+function profileFromRow(row: any): Profile {
+  const email = row.correo_electronico ?? row.email ?? null;
+  return {
+    id: row.id ?? row.user_id ?? undefined,
+    user_id: row.user_id ?? row.id,
+    email,
+    display_name: row.display_name ?? (email ? email.split("@")[0] : null),
+    avatar_url: row.avatar_url ?? null,
+    perfil_publico: row.perfil_publico ?? null,
+  };
+}
+
+function AuthorFollowControl({
+  authorId,
+  currentUserId,
+}: {
+  authorId: string;
+  currentUserId?: string;
+}) {
+  const queryClient = useQueryClient();
+  const [isBusy, setIsBusy] = useState(false);
+  const isSelf = Boolean(currentUserId && currentUserId === authorId);
+
+  const followingQuery = useQuery({
+    queryKey: ["following-author", currentUserId, authorId],
+    queryFn: async () => {
+      if (!currentUserId || isSelf) return false;
+      const { data, error } = await db
+        .from("followers")
+        .select("id")
+        .eq("follower_id", currentUserId)
+        .eq("following_id", authorId)
+        .maybeSingle();
+      if (error) throw error;
+      return Boolean(data);
+    },
+    enabled: Boolean(currentUserId) && !isSelf,
+  });
+
+  const followersQuery = useQuery({
+    queryKey: ["author-followers-count", authorId],
+    queryFn: async () => {
+      const { count, error } = await db
+        .from("followers")
+        .select("id", { count: "exact", head: true })
+        .eq("following_id", authorId);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    enabled: Boolean(authorId),
+  });
+
+  if (isSelf || !currentUserId) return null;
+
+  const toggleFollow = async () => {
+    setIsBusy(true);
+    try {
+      if (followingQuery.data) {
+        const { error } = await db
+          .from("followers")
+          .delete()
+          .eq("follower_id", currentUserId)
+          .eq("following_id", authorId);
+        if (error) throw error;
+      } else {
+        const { error } = await db.from("followers").insert({
+          follower_id: currentUserId,
+          following_id: authorId,
+        });
+        if (error) throw error;
+      }
+
+      await Promise.all([followingQuery.refetch(), followersQuery.refetch()]);
+      await queryClient.invalidateQueries({ queryKey: ["social-posts"] });
+    } catch (error: any) {
+      toast.error(error?.message || "No se pudo actualizar el seguimiento.");
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const isFollowing = Boolean(followingQuery.data);
+  return (
+    <button
+      type="button"
+      onClick={toggleFollow}
+      disabled={isBusy || followingQuery.isLoading}
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold transition ${
+        isFollowing
+          ? "border-cyan-200/30 bg-cyan-200/10 text-cyan-100"
+          : "border-fuchsia-200/25 bg-fuchsia-200/10 text-fuchsia-100 hover:bg-fuchsia-200/20"
+      } disabled:opacity-50`}
+      aria-label={isFollowing ? "Dejar de seguir" : "Seguir autor"}
+    >
+      {isFollowing ? <UserCheck className="h-3.5 w-3.5" /> : <UserPlus className="h-3.5 w-3.5" />}
+      {isFollowing ? "Siguiendo" : "Seguir"}
+      <span className="text-white/55">{followersQuery.data ?? 0}</span>
+    </button>
+  );
 }
 
 function PostCard({
@@ -339,6 +442,9 @@ function PostCard({
             </span>
           </div>
         </div>
+        {post.author_id && !post.is_official && (
+          <AuthorFollowControl authorId={post.author_id} currentUserId={currentUserId} />
+        )}
         <MoreHorizontal className="h-4 w-4 shrink-0 text-white/35" aria-hidden="true" />
       </div>
 
@@ -486,19 +592,33 @@ export default function SocialPostsSection({
   const postsQuery = useQuery({
     queryKey: ["social-posts", mode, profileUserId],
     queryFn: async () => {
-      let query = db
-        .from("social_posts")
-        .select("id,user_id,author_id,contenido,title,description,visibility,cover_url,pdf_url,book_path,cover_path,created_at")
-        .order("created_at", { ascending: false });
+      const runPostsQuery = async (columns: string) => {
+        let query = db
+          .from("social_posts")
+          .select(columns)
+          .order("created_at", { ascending: false });
 
-      if (mode === "profile" && profileUserId) {
-        query = query.or(`author_id.eq.${profileUserId},user_id.eq.${profileUserId}`);
+        if (mode === "profile" && profileUserId) {
+          query = query.or(`author_id.eq.${profileUserId},user_id.eq.${profileUserId}`);
+        }
+
+        return query;
+      };
+
+      let result = await runPostsQuery(
+        "id,user_id,author_id,contenido,title,description,visibility,cover_url,pdf_url,book_path,cover_path,created_at",
+      );
+
+      /* Fallback for older social_posts tables without the newer columns. */
+      if (result.error) {
+        result = await runPostsQuery(
+          "id,author_id,title,description,cover_url,book_path,visibility,created_at",
+        );
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
+      if (result.error) throw result.error;
 
-      return (data || []).map((row: any) => {
+      return (result.data || []).map((row: any) => {
         const isOfficial = !row.author_id && !row.user_id;
         const coverUrl =
           row.cover_url ||
@@ -544,16 +664,31 @@ export default function SocialPostsSection({
       );
       if (!ids.length) return new Map<string, Profile>();
 
-      const { data, error } = await db
+      const currentSchema = await db
         .from("perfiles")
-        .select("user_id,display_name,avatar_url,perfil_publico")
-        .in("user_id", ids);
+        .select("id,correo_electronico")
+        .in("id", ids);
 
-      if (error) throw error;
       const map = new Map<string, Profile>();
-      (data || []).forEach((item: Profile) => {
-        if (item.user_id) map.set(item.user_id, item);
-      });
+      if (!currentSchema.error) {
+        (currentSchema.data || []).forEach((item: any) => {
+          const profile = profileFromRow(item);
+          if (profile.user_id) map.set(profile.user_id, profile);
+        });
+        return map;
+      }
+
+      /* Compatibility with the older English profile schema. */
+      const legacySchema = await db
+        .from("perfiles")
+        .select("user_id,email,display_name,avatar_url,perfil_publico")
+        .in("user_id", ids);
+      if (!legacySchema.error) {
+        (legacySchema.data || []).forEach((item: any) => {
+          const profile = profileFromRow(item);
+          if (profile.user_id) map.set(profile.user_id, profile);
+        });
+      }
       return map;
     },
     enabled: Boolean(postsQuery.data?.length),

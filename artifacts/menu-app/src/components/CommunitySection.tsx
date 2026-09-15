@@ -1,17 +1,17 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Crown, BookOpen } from "lucide-react";
+import { Users, BookOpen } from "lucide-react";
 
 export default function CommunitySection() {
   const { user } = useAuth();
 
-  const { data: perfiles = [] } = useQuery({
+  const { data: perfiles = [] } = useQuery<any[]>({
     queryKey: ["comunidadPerfiles"],
     queryFn: async () => {
       const { data } = await supabase
         .from("perfiles")
-        .select("id, user_id, email, avatar_url, es_premium")
+        .select("id, correo_electronico")
         .limit(20);
       return data || [];
     },
@@ -48,17 +48,16 @@ export default function CommunitySection() {
         ) : (
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
             {perfiles.map((p) => {
-              const nombre = p.email?.split("@")[0] || "Usuario";
+              const nombre = p.correo_electronico?.split("@")[0] || "Usuario";
               return (
                 <div key={p.id} className="glass-panel shrink-0 w-24 p-3 text-center space-y-2">
                   <img
-                    src={p.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(nombre)}`}
+                    src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(nombre)}`}
                     alt={nombre}
                     className="w-10 h-10 rounded-full mx-auto border border-primary/30 object-cover"
                   />
                   <p className="text-xs font-medium text-foreground line-clamp-1 flex items-center justify-center gap-0.5">
                     {nombre}
-                    {p.es_premium && <Crown className="w-3 h-3 text-yellow-400 shrink-0" />}
                   </p>
                 </div>
               );

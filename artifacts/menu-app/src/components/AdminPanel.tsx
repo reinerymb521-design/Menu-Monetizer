@@ -17,6 +17,29 @@ import { STORAGE_BUCKETS } from "@/lib/storageBuckets";
 
 type Tab = "dashboard" | "libros" | "usuarios" | "socios";
 
+const adminDb = supabase as any;
+
+async function loadAdminProfiles() {
+  const currentSchema = await adminDb
+    .from("perfiles")
+    .select("id,correo_electronico,es_admin");
+
+  if (!currentSchema.error) return currentSchema.data ?? [];
+
+  const legacySchema = await adminDb
+    .from("perfiles")
+    .select("id,email,es_admin");
+  return legacySchema.data ?? [];
+}
+
+async function loadAdminSubscriptions() {
+  const spanish = await adminDb.from("suscripciones").select("*");
+  if (!spanish.error) return spanish.data ?? [];
+
+  const english = await adminDb.from("subscriptions").select("*");
+  return english.data ?? [];
+}
+
 /* ─── SHELL ───────────────────────────────────────────────────── */
 export default function AdminPanel () {
   const { isAdmin, loading } = useAuth();
@@ -90,19 +113,18 @@ function DashboardTab() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["adminStats"],
     queryFn: async () => {
-      const [libros, perfiles, premium, suscripciones] = await Promise.all([
+      const [libros, usuarios, premium, suscripciones] = await Promise.all([
         supabase.from("libros").select("id",    { count: "exact", head: true }),
-        (supabase as any).from("perfiles").select("id,user_id,email,correo_electronico,es_premium,es_admin,es_administrador"),
-        (supabase as any).from("perfiles").select("id",  { count: "exact", head: true }).eq("es_premium", true),
-        (supabase as any).from("suscripciones").select("*"),
+        loadAdminProfiles(),
+        adminDb.from("perfiles").select("id", { count: "exact", head: true }).eq("es_premium", true),
+        loadAdminSubscriptions(),
       ]);
-      const usuarios = (perfiles.data ?? []) as any[];
-      const subs = (suscripciones.data ?? []) as any[];
+      const subs = suscripciones as any[];
       const activas = subs.filter((sub) => String(sub.estado ?? sub.status ?? "").toLowerCase() === "activa" || String(sub.status ?? "").toLowerCase() === "active");
       return {
         totalLibros:   libros.count   ?? 0,
         totalUsuarios: usuarios.length,
-        totalVIP:      premium.count  ?? 0,
+        totalVIP:      premium.error ? usuarios.filter((u: any) => u.es_premium === true).length : (premium.count ?? 0),
         totalSuscripciones: activas.length,
         usuarios,
         suscripciones: subs,
@@ -496,10 +518,7 @@ function UsuariosTab() {
   const { data: usuarios = [], isLoading } = useQuery({
     queryKey: ["adminUsuarios"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("perfiles")
-        .select("id, correo_electronico, es_premium, es_admin");
-      return data ?? [];
+      return loadAdminProfiles();
     },
   });
 

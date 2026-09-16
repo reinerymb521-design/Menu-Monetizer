@@ -55,6 +55,8 @@ type SocialPost = {
   like_count: number;
   comment_count: number;
   share_count: number;
+  review_count: number;
+  review_average: number;
   created_at: string;
 };
 
@@ -151,6 +153,52 @@ function profileFromRow(row: any): Profile {
     display_name: row.display_name ?? (email ? email.split("@")[0] : null),
     avatar_url: row.avatar_url ?? null,
     perfil_publico: row.perfil_publico ?? null,
+  };
+}
+
+type InteractionSummary = {
+  likes: Map<string, number> | null;
+  comments: Map<string, number> | null;
+  shares: Map<string, number> | null;
+  reviews: Map<string, { count: number; total: number }> | null;
+};
+
+function countByPost(rows: any[] | null | undefined) {
+  const counts = new Map<string, number>();
+  for (const row of rows ?? []) {
+    if (row.post_id) counts.set(row.post_id, (counts.get(row.post_id) ?? 0) + 1);
+  }
+  return counts;
+}
+
+async function loadInteractionSummary(postIds: string[]): Promise<InteractionSummary> {
+  if (!postIds.length) {
+    return { likes: new Map(), comments: new Map(), shares: new Map(), reviews: new Map() };
+  }
+
+  const [likes, comments, shares, reviews] = await Promise.all([
+    db.from("social_post_likes").select("post_id").in("post_id", postIds),
+    db.from("social_post_comments").select("post_id").in("post_id", postIds),
+    db.from("social_post_shares").select("post_id").in("post_id", postIds),
+    db.from("social_post_reviews").select("post_id,rating").in("post_id", postIds),
+  ]);
+
+  const reviewStats = new Map<string, { count: number; total: number }>();
+  if (!reviews.error) {
+    for (const row of reviews.data ?? []) {
+      const previous = reviewStats.get(row.post_id) ?? { count: 0, total: 0 };
+      reviewStats.set(row.post_id, {
+        count: previous.count + 1,
+        total: previous.total + Number(row.rating || 0),
+      });
+    }
+  }
+
+  return {
+    likes: likes.error ? null : countByPost(likes.data),
+    comments: comments.error ? null : countByPost(comments.data),
+    shares: shares.error ? null : countByPost(shares.data),
+    reviews: reviews.error ? null : reviewStats,
   };
 }
 
@@ -406,6 +454,7 @@ function PostCard({
       if (error) throw error;
       setReview("");
       setRating(0);
+      await onRefresh();
       await reviewsQuery.refetch();
       toast.success("Reseña guardada.");
     } catch (error: any) {
@@ -483,7 +532,11 @@ function PostCard({
           {showComments ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
         </button>
         <button type="button" onClick={() => setShowReviews((value) => !value)} className={`${softButton} ml-auto border-transparent bg-transparent hover:bg-white/10`} data-testid={`button-reviews-post-${post.id}`}>
-          <Star className="h-4 w-4" /><span>Reseñas</span>
+          <Star className="h-4 w-4" />
+          <span>
+            {post.review_count} reseña{post.review_count === 1 ? "" : "s"}
+            {post.review_average > 0 && ` · ${post.review_average.toFixed(1)}`}
+          </span>
         </button>
       </div>
 
@@ -606,7 +659,7 @@ export default function SocialPostsSection({
       };
 
       let result = await runPostsQuery(
-        "id,user_id,author_id,contenido,title,description,visibility,cover_url,pdf_url,book_path,cover_path,created_at",
+        "id,user_id,author_id,contenido,title,description,visibility,cover_url,pdf_url,book_path,cover_path,like_count,comment_count,share_count,created_at",
       );
 
       /* Fallback for older social_posts tables without the newer columns. */
@@ -618,7 +671,7 @@ export default function SocialPostsSection({
 
       if (result.error) throw result.error;
 
-      return (result.data || []).map((row: any) => {
+      const basePosts: SocialPost[] = (result.data || []).map((row: any) => {
         const isOfficial = !row.author_id && !row.user_id;
         const coverUrl =
           row.cover_url ||
@@ -642,11 +695,26 @@ export default function SocialPostsSection({
             : "public") as Visibility,
           is_official: isOfficial,
           official_label: isOfficial ? "Equipo AudiVerse" : null,
-          like_count: 0,
-          comment_count: 0,
-          share_count: 0,
+          like_count: Number(row.like_count ?? 0),
+          comment_count: Number(row.comment_count ?? 0),
+          share_count: Number(row.share_count ?? 0),
+          review_count: 0,
+          review_average: 0,
           created_at: row.created_at,
         } satisfies SocialPost;
+      });
+
+      const summary = await loadInteractionSummary(basePosts.map((post) => post.id));
+      return basePosts.map((post) => {
+        const review = summary.reviews?.get(post.id);
+        return {
+          ...post,
+          like_count: summary.likes?.get(post.id) ?? post.like_count,
+          comment_count: summary.comments?.get(post.id) ?? post.comment_count,
+          share_count: summary.shares?.get(post.id) ?? post.share_count,
+          review_count: review?.count ?? 0,
+          review_average: review ? review.total / review.count : 0,
+        };
       });
     },
   });

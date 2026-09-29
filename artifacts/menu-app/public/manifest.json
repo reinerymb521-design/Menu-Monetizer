@@ -1,0 +1,26 @@
+{
+  "name": "AudiVerse — Libros y Audiolibros",
+  "short_name": "AudiVerse",
+  "description": "Tu universo infinito de lectura y audio",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d1526",
+  "theme_color": "#0d1526",
+  "categories": ["books", "entertainment", "education"],
+  "icons": [
+    {
+      "src": "audiverse-logo.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "audiverse-logo.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

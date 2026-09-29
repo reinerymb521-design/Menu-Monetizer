@@ -1,0 +1,1 @@
+UPDATE public.profiles SET is_banned = false WHERE user_id = '9c173554-74d8-40c0-b615-63a00b58b8d6';

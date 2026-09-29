@@ -25,6 +25,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+<<<<<<< HEAD
           cache: npm
 
       - name: Install dependencies
@@ -32,6 +33,17 @@ jobs:
 
       - name: Build
         run: npm run build --workspace=@workspace/menu-app
+=======
+          cache: 'npm'
+
+      - name: Install dependencies
+        working-directory: artifacts/menu-app
+        run: npm install
+
+      - name: Build
+        working-directory: artifacts/menu-app
+        run: npm run build
+>>>>>>> a973b2a2392e3ab8809b54363a9964664e6a391c
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

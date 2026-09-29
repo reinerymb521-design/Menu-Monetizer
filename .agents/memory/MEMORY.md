@@ -1,1 +1,2 @@
 - [AudiVerse data compatibility](audiverse-data-compatibility.md) — keep new social features compatible with the app's Spanish Supabase tables and older English schema.
+- [npm workspace migration](npm-workspace-migration.md) — generate npm locks only after removing inherited nested pnpm node_modules and align peer-constrained build tools.

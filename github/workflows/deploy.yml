@@ -21,24 +21,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: latest
-          run_install: false
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
       - name: Install dependencies
-        working-directory: artifacts/menu-app
-        run: pnpm install --no-frozen-lockfile
+        run: npm ci
 
       - name: Build
-        working-directory: artifacts/menu-app
-        run: pnpm run build
+        run: npm run build --workspace=@workspace/menu-app
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -46,7 +39,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: artifacts/menu-app/dist
+          path: artifacts/menu-app/dist/public
 
   deploy:
     environment:

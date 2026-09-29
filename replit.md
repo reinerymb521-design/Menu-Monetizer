@@ -2,13 +2,13 @@
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+npm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
 ## Stack
 
-- **Monorepo tool**: pnpm workspaces
+- **Monorepo tool**: npm workspaces
 - **Node.js version**: 24
-- **Package manager**: pnpm
+- **Package manager**: npm
 - **TypeScript version**: 5.9
 - **API framework**: Express 5
 - **Database**: PostgreSQL + Drizzle ORM
@@ -18,13 +18,13 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 
 ## Key Commands
 
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
+- `npm run typecheck` — full typecheck across all packages
+- `npm run build` — typecheck + build all packages
+- `npm run codegen --workspace=@workspace/api-spec` — regenerate API hooks and Zod schemas from OpenAPI spec
+- `npm run push --workspace=@workspace/db` — push DB schema changes (dev only)
+- `npm run dev --workspace=@workspace/api-server` — run API server locally
 
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+The root `package.json` defines the npm workspace structure.
 
 ## AudiVerse Artifact (`artifacts/menu-app`)
 

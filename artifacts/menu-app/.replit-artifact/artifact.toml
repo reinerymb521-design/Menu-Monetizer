@@ -19,7 +19,7 @@ run = "npm run dev --workspace=@workspace/menu-app"
 
 [services.production]
 build = [ "npm", "run", "build", "--workspace=@workspace/menu-app" ]
-publicDir = "artifacts/menu-app/dist/public"
+publicDir = "artifacts/menu-app/dist"
 serve = "static"
 
 [[services.production.rewrites]]

@@ -17,6 +17,9 @@ import LoginScreen from "./components/LoginScreen";
 const queryClient = new QueryClient();
 
 const paypalClientId = (import.meta.env.VITE_PAYPAL_CLIENT_ID as string) || "test";
+const routerBasename = import.meta.env.BASE_URL.startsWith(".")
+  ? "/"
+  : import.meta.env.BASE_URL;
 
 // Creamos un componente intermedio para manejar la lógica de redirección
 const AppContent = () => {
@@ -37,7 +40,7 @@ const AppContent = () => {
     <SettingsProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter basename={import.meta.env.BASE_URL}>
+      <BrowserRouter basename={routerBasename}>
         <AudioPlayerProvider>
           <Routes>
             <Route path="/" element={<Index />} />

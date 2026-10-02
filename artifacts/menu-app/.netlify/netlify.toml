@@ -1,0 +1,29 @@
+plugins = []
+headers = []
+redirects = []
+
+[functions]
+
+[functions."*"]
+
+[build]
+publish = "/opt/build/repo/artifacts/menu-app/dist"
+publishOrigin = "config"
+commandOrigin = "config"
+command = "npm run build --workspace=@workspace/menu-app"
+
+[build.environment]
+NODE_VERSION = "22"
+NPM_VERSION = "10.8.2"
+
+[build.processing]
+
+[build.processing.css]
+
+[build.processing.html]
+
+[build.processing.images]
+
+[build.processing.js]
+
+[build.services]

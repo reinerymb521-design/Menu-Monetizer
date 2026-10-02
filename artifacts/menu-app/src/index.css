@@ -176,15 +176,27 @@ html[data-font-size="sm"] { font-size: 13px; }
 html[data-font-size="md"] { font-size: 15px; }
 html[data-font-size="lg"] { font-size: 18px; }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+@keyframes loading-emblem-pulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 8px rgba(196, 138, 255, 0.2));
+  }
+  50% {
+    transform: scale(1.045);
+    filter: drop-shadow(0 0 18px rgba(196, 138, 255, 0.48));
+  }
 }
 
-.loader-spinner {
-  width: 50px;
-  height: 50px;
-  border: 5px solid rgba(255, 215, 0, 0.1);
-  border-top: 5px solid #ffd700;
+.loading-emblem {
+  width: 104px;
+  height: 104px;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  object-fit: cover;
+  animation: loading-emblem-pulse 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-emblem {
+    animation: none;
+  }
 }

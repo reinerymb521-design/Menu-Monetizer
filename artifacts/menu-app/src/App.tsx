@@ -13,6 +13,7 @@ import AudioPlayer from "./components/AudioPlayer";
 import MiniAudioPlayer from "./components/MiniAudioPlayer";
 import { AudioPlayerProvider } from "./contexts/AudioPlayerContext";
 import LoginScreen from "./components/LoginScreen";
+import LoadingScreen from "./components/LoadingScreen";
 
 const queryClient = new QueryClient();
 
@@ -27,7 +28,7 @@ const AppContent = () => {
 
   // Mientras Supabase verifica la sesión, mostramos un estado de carga
   if (loading) {
-    return <div>Cargando...</div>;
+    return <LoadingScreen text="Cargando AudiVerse..." />;
   }
 
   // Si no hay usuario, obligamos a ver la pantalla de Login

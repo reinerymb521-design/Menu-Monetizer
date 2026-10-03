@@ -1,6 +1,7 @@
 [build]
-  command = "npm install && npm --prefix artifacts/menu-app run build"
+  command = "cd artifacts/menu-app && npm install && npm run build"
   publish = "artifacts/menu-app/dist"
 
 [build.environment]
   NODE_VERSION = "22"
+  NPM_FLAGS = "--no-workspaces"

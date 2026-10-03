@@ -1,7 +1,6 @@
 [build]
-  base = "artifacts/menu-app"
-  command = "npm run build"
-  publish = "dist"
+  command = "npm install && npm --prefix artifacts/menu-app run build"
+  publish = "artifacts/menu-app/dist"
 
 [build.environment]
   NODE_VERSION = "22"
